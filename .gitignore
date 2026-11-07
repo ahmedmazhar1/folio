@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+*-preview.png
+folio-*.png
+apparel-review.png
+hoodie-*.png

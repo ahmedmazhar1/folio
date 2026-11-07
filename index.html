@@ -1,0 +1,114 @@
+<!doctype html><html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Folio — Your brand, in every form</title><meta name="description" content="Design packaging and apparel in 3D. Explore materials, place artwork, and prepare a production quote brief."><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="story.css"></head><body><header class="top"><a class="brand" href="#home" aria-label="Folio home"><span class="brand-icon">f.</span>folio<span class="brand-sub">STUDIO</span></a><nav aria-label="Main navigation"><button data-view="home">Home</button><button data-view="library">Mockups</button><button data-view="editor" class="active">Design studio</button><button data-view="hoodie">Apparel studio</button><button data-view="templates">Packaging library</button><button data-view="projects">My projects</button></nav><span class="local-tag">Local workspace</span><button class="btn" id="saveProject">Save project</button></header><div class="projectbar"><div><span class="eyebrow">YOUR WORKSPACE / PACKAGING</span><input id="projectName" aria-label="Project name" value="Untitled packaging" maxlength="70"></div><span id="saveStatus" role="status">Changes are unsaved</span><button class="btn pri" id="topQuote">Request a quote ↗</button></div>
+<main id="home" class="folio-story" hidden>
+<header class="story-header">
+<a href="#home" class="story-brand" aria-label="Folio home">folio<span>®</span></a>
+<span class="story-header-note">YOUR BRAND. IN EVERY FORM.</span>
+<a class="story-dive" href="#library">Dive in <span aria-hidden="true">↗</span></a>
+</header>
+<div class="story-scroll" id="storyScroll">
+<div class="story-pin">
+<div class="story-atmosphere" aria-hidden="true">
+<div class="story-glow"></div>
+<svg class="story-liquid" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="liquidLine" x1="0" x2="1" y2="1"><stop stop-color="#ecff70"/><stop offset=".48" stop-color="#a3d97f"/><stop offset="1" stop-color="#79caa4"/></linearGradient></defs>
+<g fill="none" stroke="url(#liquidLine)">
+<path class="liquid-main" d="M1550 25C1290-148 703 3 736 203S1350 256 1314 516 813 847 967 1050"/>
+<path class="liquid-inner" d="M1550 66C1285-98 756 26 775 203S1385 259 1354 521 851 861 1011 1060"/>
+<path class="liquid-thread" d="M-210 670C-35 410 339 1072 596 795S800 475 1007 534 1432 927 1518 618"/>
+<ellipse cx="1148" cy="190" rx="85" ry="51" transform="rotate(-32 1148 190)"/>
+<ellipse cx="1250" cy="708" rx="31" ry="38" transform="rotate(32 1250 708)"/>
+<ellipse cx="655" cy="282" rx="18" ry="22"/>
+</g>
+</svg>
+<div class="liquid-bubble bubble-one"></div><div class="liquid-bubble bubble-two"></div>
+</div>
+<div class="story-scene" id="storyScene"><canvas id="storyCanvas" role="img" aria-label="One design brings a box, hoodie, half-sleeved shirt, full-sleeved shirt and paper bag together before the collection is delivered."></canvas><div id="storyFallback" hidden><span>✳</span><strong>Your brand. <br>In every form.</strong><p>Explore the story using the chapters below.</p></div></div>
+<div class="story-copy" id="storyCopy">
+<section class="story-chapter is-current" data-chapter="0" aria-labelledby="storyTitle0">
+<span class="story-eyebrow"><i></i> PRINT YOUR WORLD</span>
+<h1 id="storyTitle0">Your brand. <br>In every <br><em>form.</em></h1>
+<p>Packaging, apparel and paper. <br>Bring your ideas to life in print.</p>
+</section>
+<section class="story-chapter" data-chapter="1" aria-labelledby="storyTitle1" aria-hidden="true" inert>
+<span class="story-eyebrow">START WITH AN IDEA</span>
+<h2 id="storyTitle1">Start with <br>something <br><em>simple.</em></h2>
+<p>A blank sheet. A few clever folds. <br>A first look at what’s possible.</p>
+</section>
+<section class="story-chapter" data-chapter="2" aria-labelledby="storyTitle2" aria-hidden="true" inert>
+<span class="story-eyebrow">MAKE IT YOURS</span>
+<h2 id="storyTitle2">One design. <br><em>So many forms.</em></h2>
+<p>Across boxes, hoodies, shirts and bags. <br>See your brand come together.</p>
+</section>
+<section class="story-chapter" data-chapter="3" aria-labelledby="storyTitle3" aria-hidden="true" inert>
+<span class="story-eyebrow">READY FOR THE WORLD</span>
+<h2 id="storyTitle3">Made to go <br><em>places.</em></h2>
+<p>Your whole collection, packed together. <br>One final journey before it’s yours.</p>
+</section>
+<section class="story-chapter" data-chapter="4" aria-labelledby="storyTitle4" aria-hidden="true" inert>
+<span class="story-eyebrow">A HAPPY ARRIVAL</span>
+<h2 id="storyTitle4">Delivered at <br>your doorstep, <br><em>with love.</em></h2>
+<p>Because the best part of any journey <br>is making someone’s day.</p>
+<a class="story-end-link" href="#library">Find your next canvas <span aria-hidden="true">↗</span></a>
+</section>
+</div>
+
+<div class="story-bottom">
+<button class="story-scroll-hint" id="storyNext" type="button"><span class="story-down" aria-hidden="true">↓</span><span id="storyScrollLabel">Scroll to unfold</span></button>
+<nav class="story-timeline" aria-label="Story chapters">
+<button data-story-step="0" aria-label="A blank canvas" aria-current="step"><i></i></button>
+<button data-story-step="1" aria-label="The first idea takes shape"><i></i></button>
+<button data-story-step="2" aria-label="One design across packaging and apparel"><i></i></button>
+<button data-story-step="3" aria-label="Follow the collection on its journey"><i></i></button>
+<button data-story-step="4" aria-label="Your collection delivered with love"><i></i></button>
+</nav>
+
+</div>
+<div class="story-bottom-line" aria-hidden="true"><i id="storyProgressLine"></i></div>
+</div>
+</div>
+<footer class="story-footer"><a class="story-brand" href="#home">folio<span>®</span></a><p>Your next print starts here.</p><a href="#library">Dive in ↗</a><button id="storyReplay" type="button">Back to the beginning ↑</button></footer>
+</main>
+<main id="library" hidden>
+<div class="home-intro"><span class="home-kicker">FOLIO &nbsp;/&nbsp; DESIGN LIBRARY</span><h1>What are you making?</h1><p>Start with a product to dress in your artwork, or a flat template to fold into shape.</p></div>
+<section aria-labelledby="mockupTitle"><div class="home-section-title"><h2 id="mockupTitle">Product mockups</h2><span>MAKE IT YOURS</span></div><div class="home-grid" id="mockupCards"></div></section>
+<section aria-labelledby="templateTitle"><div class="home-section-title"><h2 id="templateTitle">Dieline templates</h2><button id="allStructures">View the full library →</button></div><div class="home-grid" id="netCards"></div></section>
+</main><div class="app" id="editor">
+<nav class="rail" role="tablist" aria-label="Tools" id="rail"></nav>
+<section class="panel">
+<div class="pane" data-p="models"><h2>Models</h2><div id="models"></div><p class="n">More box styles arrive as templates. These three share the mailer-box structure.</p></div>
+<div class="pane" data-p="artwork" hidden><h2>Artwork</h2>
+<div class="lbl" style="margin-top:0">Drag onto the box</div>
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px"><div class="chip" id="chipT" draggable="true">Text</div><label class="btn" for="photos" tabindex="0">Add photos</label><input type="file" id="photos" accept="image/*" multiple hidden></div>
+<div class="lib" id="lib"></div>
+<p class="n">Drag text or photos onto any face, or drop image files straight from your computer. Drag an item from one face to another to move it. On a touch screen, tap a photo or Text to place it on the front.</p>
+<div class="lbl">Cover artwork for all faces</div>
+<label class="drop" for="file" tabindex="0"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg><b style="color:var(--ink)">Upload your artwork or logo</b><span>PNG, JPG or SVG</span></label>
+<input type="file" id="file" accept="image/*" hidden>
+<div class="lbl">Layout</div><div class="seg" id="mode"><button data-v="wrap">Wrap each face</button><button data-v="pattern">Repeat pattern</button></div>
+<div class="lbl">Pattern size <span id="vpat"></span></div><input type="range" id="pat" min=".1" max=".6" step=".01">
+<div class="lbl">Text on the box</div><p class="n" style="margin:0 0 8px">Drag an element to move it. Drag its yellow bottom-right handle to resize. Select a layer for precise controls below.</p><div class="btns"><button class="btn" id="addT">Add text</button><button class="btn" id="delT">Delete</button></div><div class="lbl">Element size <span id="vsz"></span></div><input type="range" id="tsz" min=".1" max="5" step=".05"><div class="lbl">Text colour</div><input type="color" id="tcol" value="#0F2133">
+<div class="lbl">Box colour</div><div class="sw" id="sw"></div>
+<p class="n"><button class="btn" id="clear">Remove artwork</button></p></div>
+<div class="pane" data-p="material" hidden><h2>Material and size</h2>
+<div class="lbl">Material</div><select id="mat"><option value="kraft">Corrugated board (kraft)</option><option value="sbs">White cartonboard</option><option value="rigid">Rigid board</option></select>
+<div class="lbl">Finish</div><select id="fin"><option value="matte">Matte</option><option value="gloss">Gloss</option><option value="soft">Soft-touch</option></select>
+<div class="lbl">Quantity</div><select id="qty"><option>100</option><option>250</option><option selected>500</option><option>1000</option><option>2500</option><option>5000</option></select>
+<div class="lbl">Units</div><div class="seg" id="unit"><button data-v="mm">Millimetres</button><button data-v="in">Inches</button></div>
+<div class="lbl">Length <span id="vL"></span></div><input type="range" id="L" min="100" max="400" step="0.1">
+<div class="lbl">Width <span id="vW"></span></div><input type="range" id="W" min="80" max="300" step="0.1">
+<div class="lbl">Height <span id="vH"></span></div><input type="range" id="H" min="30" max="200" step="0.1"></div>
+<div class="pane" data-p="export" hidden><h2>Dieline</h2>
+<p class="n">Drag the slider from the flat sheet to the assembled pack. Red edges are cuts. Dashed green edges are creases.</p>
+<label for="dieStructure">Structure</label><select id="dieStructure"></select><p id="dieDims"></p><div class="die-key"><span>Cut</span><span>Crease</span></div><button class="btn pri" id="dl">Download dieline (SVG)</button><div id="msg" role="status"></div></div>
+</section>
+<main class="stage">
+<canvas id="cv" aria-label="3D box preview. Drag to rotate, scroll to zoom. Click text to edit it."></canvas><textarea id="kb" aria-label="Edit selected text" maxlength="40"></textarea><div class="hintf">Drag text or photos onto any face. Click text and type to edit.</div>
+<div class="tb">
+<button id="undo" aria-label="Undo" disabled><svg viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
+<button id="redo" aria-label="Redo" disabled><svg viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
+<button id="open" aria-label="Open or close lid" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 12h16v8H4z"/><path d="M4 12l3-8h13l-3 8"/></svg></button>
+</div>
+<div class="bar"><div><b id="price">—</b><small id="total"></small></div><div class="btns"><button class="btn" id="dl2">Dieline</button><button class="btn pri" id="quote">Request quote</button></div></div>
+</main>
+</div>
+<section id="hoodie" aria-label="Apparel studio" hidden><iframe title="Interactive apparel editor" id="hoodieEditor"></iframe></section><section id="templates" class="view" hidden><div class="viewhead"><div><span class="eyebrow">THE PACKAGING COLLECTION</span><h1>A better first impression.</h1><p>Start with the right proportions. Make every surface your own.</p></div><input id="searchTemplates" type="search" placeholder="Search packaging…" aria-label="Search packaging"></div><div class="filter-row"><span class="pill">Cardboard &amp; corrugated</span><span>Custom dimensions available in the editor</span></div><div id="templateGrid" class="template-grid"></div><div class="notice">Visual assembly studies. Confirm locking details and tolerances with your packaging supplier.</div></section><section id="projects" class="view" hidden><div class="viewhead"><div><span class="eyebrow">YOUR BRAND, IN PROGRESS</span><h1>Made by you.</h1><p>Continue a design or review a saved quote brief.</p></div><button class="btn pri" id="newProject">New project +</button></div><div id="projectList"></div><h2 class="subhead">Quote briefs</h2><div id="quoteList"></div><div class="notice">Projects and briefs are stored in this browser only. Download a project backup to keep a portable copy.</div><button class="btn" id="backup">Download project backup</button><label class="btn import" for="restore">Import project</label><input id="restore" type="file" accept="application/json" hidden></section><dialog id="quoteDialog"><form id="quoteForm"><div class="dialoghead"><span class="eyebrow">NEXT STEP / PRODUCTION REVIEW</span><button type="button" class="close" aria-label="Close quote form">×</button></div><h1>Bring your packaging to life.</h1><p>Create a quote brief with your design specifications. Download it to share with your packaging supplier.</p><div id="quoteSpecs" class="spec-summary"></div><div class="formgrid"><label>Your name<input name="name" required maxlength="100" autocomplete="name"></label><label>Email address<input name="email" type="email" required autocomplete="email"></label><label>Company<input name="company" maxlength="100" autocomplete="organization"></label><label>Delivery city<input name="city" required maxlength="100"></label></div><label>Production notes<textarea name="notes" rows="3" maxlength="1500" placeholder="Tell your supplier about timing, print coverage, or special finishes."></textarea></label><div class="notice">No supplier is connected. This saves a brief locally; it does not submit an order or confirm a price.</div><button class="btn pri" type="submit">Save & download quote brief</button></form></dialog><div id="toast" role="status"></div><script src="vendor/three.min.js"></script><script src="catalog.js"></script><script src="folding-engine.js"></script><script src="editor.js"></script><script src="workspace.js"></script><script src="api-client.js"></script><script src="studio.js"></script><script src="product.js"></script><script src="garment-model.js"></script><script src="story-scene.js"></script><script src="story.js"></script></body></html>

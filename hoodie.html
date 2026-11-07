@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apparel Studio · Folio</title>
+<script>if(window.top===window.self) location.replace('/?garment=' + encodeURIComponent(new URLSearchParams(location.search).get('garment') || 'hoodie') + '#hoodie');</script>
+<style>
+*{box-sizing:border-box}body{margin:0;font:13px/1.5 Manrope,system-ui,sans-serif;color:#ecf2e7;background:#111612}button,select,input{font:inherit;color:inherit}button,select{border:1px solid #43503f;border-radius:8px;padding:9px 12px;background:#20281e;cursor:pointer}button:hover{background:#303d2a}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #e7ff73;outline-offset:3px}header{height:82px;display:flex;align-items:center;gap:24px;padding:0 28px;border-bottom:1px solid #34402f;background:#151c16}header strong{display:block;font-size:20px;letter-spacing:-.7px}header small{display:block;color:#a4b39b;font-size:9px;font-weight:600;letter-spacing:2px}header button{margin-left:auto;background:#e7ff73;color:#172110;border-color:#e7ff73;font-weight:700}main{display:grid;grid-template-columns:minmax(0,1fr) 320px;height:calc(100dvh - 82px)}article{position:relative;background:radial-gradient(ellipse at 47% 38%,#66676b 0,#45464a 44%,#2c2d30 100%);min-width:0;overflow:hidden}article::before{content:'';position:absolute;width:65%;height:70%;border:1px solid #d0e1bd12;border-radius:48% 52% 62% 38%;top:12%;left:18%;pointer-events:none}canvas{position:relative;width:100%;height:100%;display:block;touch-action:none;cursor:grab}.views{position:absolute;top:20px;left:20px;right:20px;display:flex;flex-wrap:wrap;gap:5px}.views button{font-size:10px;background:#152112b8;border-color:#d1e2b52b;padding:8px 11px;backdrop-filter:blur(12px)}.views button:hover{background:#e7ff73;color:#16200f}.hint{position:absolute;bottom:16px;text-align:center;left:12px;right:12px;font-size:10px;color:#c2cfb9;pointer-events:none}.studio-badge{position:absolute;bottom:44px;left:0;right:0;text-align:center;font-size:8px;letter-spacing:2.4px;color:#d5e4c6;pointer-events:none}aside{padding:24px;overflow:auto;border-left:1px solid #34402f;background:#151c16}h1{font-size:28px;line-height:1.08;letter-spacing:-1px;margin:8px 0 8px}aside small{letter-spacing:2px;font-size:8px;font-weight:600;color:#b7ce9e}.garment-details{font-size:9px;letter-spacing:1px;color:#8f9e85;margin:0 0 24px}label{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:600;margin:17px 0 7px;color:#c4d0bb}aside input:not([type=color]),aside select{width:100%;accent-color:#e7ff73}input[type=text]{border:1px solid #43503f;border-radius:7px;padding:10px;background:#20281e}input[type=color]{width:52px;height:34px;padding:3px;border:1px solid #43503f;background:#20281e;border-radius:7px;vertical-align:middle}.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.row>button{font-size:11px}.row #add,.row #upload{flex:1}hr{border:none;border-top:1px solid #34402f;margin:23px 0}#status{font-size:10px;line-height:1.7;color:#97ab88;margin-top:22px}output{font-size:10px;font-weight:400;color:#e7ff73}.fabric-row{display:flex;align-items:center;gap:12px}.fabric-row span{font-size:10px;color:#90a083}.edit-intro{font-size:11px;color:#90a083;margin:0 0 17px}#remove{color:#b2c7a2;background:transparent}.header-pip{width:6px;height:6px;background:#e7ff73;border-radius:50%;display:inline-block;margin-right:8px}#printFrame{position:absolute;inset:0;pointer-events:none}#printFrame svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}#printFrame path{stroke:#e7ff73;stroke-width:1.6;fill:none;filter:drop-shadow(0 1px 1px #10180c)}.handle{position:absolute;pointer-events:auto;touch-action:none;transform:translate(-50%,-50%);width:28px;height:28px;padding:0;border:2px solid #e7ff73;border-radius:50%;color:#14200d;background:#e7ff73;line-height:20px;font-size:15px;box-shadow:0 2px 7px #10180c55}.handle[data-action=size]{cursor:nwse-resize}.handle[data-action=angle]{cursor:crosshair}#onShirt{position:absolute;transform:translate(-50%,0);width:220px;z-index:2;background:#182314;color:#f0f6e8;padding:9px;border:2px solid #e7ff73;border-radius:6px}[hidden]{display:none!important}
+@media(max-width:740px){header{height:70px;padding:0 16px;gap:12px}header strong{font-size:18px}header button{font-size:11px}main{display:flex;height:auto;flex-direction:column}article{height:66dvh;min-height:410px}.views{top:12px;left:12px;right:12px;gap:4px}.views button{font-size:9px;padding:7px 9px}aside{border:0;padding:25px 22px 36px}.hint{font-size:9px}.garment-details{margin-bottom:20px}}
+.fabric-swatches{display:flex;gap:11px;margin-top:13px}.fabric-swatches button{width:28px;height:28px;padding:0;border-radius:50%;background:var(--swatch);border:2px solid #747b70}.fabric-swatches button[aria-pressed=true]{outline:2px solid #e7ff73;outline-offset:3px}.fabric-swatches button:hover{transform:scale(1.08)}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header><div><small><span class="header-pip"></span>APPAREL STUDIO</small><strong id="garmentTitle">Pullover hoodie</strong></div><button id="export">Export PNG ↗</button></header>
+<main>
+<article>
+<canvas id="garment" aria-label="3D garment with live editable artwork"></canvas>
+<div id="printFrame" hidden><svg aria-hidden="true"><path></path></svg><button class="handle" data-action="size" aria-label="Resize selected print" title="Drag to resize">↘</button><button class="handle" data-action="angle" aria-label="Rotate selected print" title="Drag to rotate">↻</button></div>
+<input id="onShirt" hidden maxlength="80" aria-label="Edit text on garment">
+<div class="views" id="views" aria-label="Garment views"></div>
+<span class="studio-badge">YOUR DESIGN. EVERY ANGLE.</span>
+<p class="hint">Drag your print · pull a handle to resize or rotate · double-click text to edit</p>
+</article>
+<aside>
+<small>MAKE IT YOURS</small><h1 id="sidebarTitle">Pullover hoodie</h1><p class="garment-details" id="garmentDetails">RELAXED FIT · PULLOVER</p>
+<label for="garmentType">Choose your garment</label><select id="garmentType"><option value="hoodie">Pullover hoodie</option><option value="tshirt-short">Half Sleeved Shirts</option><option value="tshirt-long">Full Sleeved Shirts</option></select>
+<label for="fabric">Fabric color</label><div class="fabric-row"><input type="color" id="fabric" value="#f1f1ed"><span>Find your shade.</span></div><div class="fabric-swatches" aria-label="Fabric swatches"><button type="button" data-fabric="#f1f1ed" aria-label="White fabric" title="White" style="--swatch:#f1f1ed"></button><button type="button" data-fabric="#171918" aria-label="Black fabric" title="Black" style="--swatch:#171918"></button><button type="button" data-fabric="#8d8e8c" aria-label="Grey fabric" title="Grey" style="--swatch:#8d8e8c"></button><button type="button" data-fabric="#293b30" aria-label="Forest fabric" title="Forest" style="--swatch:#293b30"></button></div>
+<hr>
+<p class="edit-intro">Add a little personality.</p><div class="row"><button id="add">＋ Add text</button><button id="upload">↑ Upload art</button><input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden></div>
+<label for="layers">Selected print</label><select id="layers"></select>
+<div id="controls">
+<label for="place">Placement</label><select id="place"></select>
+<div id="textControls"><label for="words">Your words</label><input type="text" id="words" maxlength="80"><label for="font">Typeface</label><select id="font"><option value="Arial">Sans serif</option><option value="Georgia">Georgia</option><option value="monospace">Monospace</option></select><label for="ink">Ink color</label><input type="color" id="ink"></div>
+<label for="scale">Print size <output id="printSize" for="scale"></output></label><input type="range" id="scale" min="2" max="32" step=".5">
+<label for="angle">Rotation <output id="printAngle" for="angle"></output></label><input type="range" id="angle" min="-180" max="180">
+<div class="row"><button id="duplicate">Duplicate</button><button id="remove">Remove</button></div>
+</div>
+<p role="status" id="status"></p>
+</aside>
+</main>
+<script src="/vendor/three.min.js"></script><script src="/garment-model.js"></script><script src="/hoodie.js"></script>
+</body>
+</html>
