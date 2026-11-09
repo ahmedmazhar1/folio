@@ -35,7 +35,7 @@ $('clear').onclick=()=>{S.img=null;refresh();commit()};
 $('open').onclick=()=>{S.open=!S.open;tx=S.open?.85:.3;$('open').setAttribute('aria-pressed',S.open)};
 $('quote').onclick=()=>{$('msg').textContent='';alert('Quote requested for '+S.qty+' boxes. In the full platform this sends your design to our team.')};
 const fmt=v=>S.u==='in'?(v/25.4).toFixed(2)+' in':v+' mm';
-function price(){const a=2*(S.L*S.W+S.L*S.H+S.W*S.H)/100,r={kraft:.003,sbs:.0034,rigid:.009}[S.mat],f={matte:.12,gloss:.15,soft:.35}[S.fin],d=1-Math.min(.4,Math.log10(S.qty/100)*.2),u=(a*r+a*.0008+f)*d+120/S.qty;return{u,t:u*S.qty}}
+function price(){return {u:null,t:null,quoteRequired:true}}
 function refresh(){
  ['L','W','H'].forEach(k=>{$(k).value=S[k];$('v'+k).textContent=fmt(S[k])});
  $('vpat').textContent=Math.round(S.pat*100)+'%';$('pat').value=S.pat;$('mat').value=S.mat;$('fin').value=S.fin;$('qty').value=S.qty;
@@ -43,7 +43,7 @@ function refresh(){
  document.querySelectorAll('#unit button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.u));
  $('sw').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.c===S.color));
  $('models').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',PRESETS[b.dataset.i].id===S.template));
- const p=price();$('price').textContent='$'+p.u.toFixed(2)+' each';$('total').textContent='Estimate $'+p.t.toFixed(0)+' for '+S.qty+' boxes';
+ const p=price();$('price').textContent='Custom quote';$('total').textContent=S.qty+' boxes · Final price after specification review';
  build();
 }
 

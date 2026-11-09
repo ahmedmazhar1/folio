@@ -1,5 +1,5 @@
 // Product experience: a small set of clear, working actions.
-document.querySelector('.brand-sub').textContent='MOCKUP STUDIO';document.querySelector('nav [data-view=editor]').textContent='Packaging studio';document.querySelector('.local-tag').textContent='Saved on this device';
+document.querySelector('.brand-sub').textContent='COLLECTION & STUDIO';document.querySelector('nav [data-view=editor]').textContent='Packaging studio';document.querySelector('.local-tag').textContent='Saved on this device';
 document.querySelector('.studio-heading h2').textContent='Your design goes here';document.querySelector('.studio-heading p').textContent='Pick a side, upload your artwork, and move it into place.';
 document.querySelector('.studio-steps').hidden=true;document.querySelector('.projectbar .eyebrow').textContent='MAKE SOMETHING WORTH OPENING';$('topQuote').textContent='Export mockup';$('topQuote').onclick=()=>$('exportMockup').click();
 const modelPane=document.querySelector('.pane[data-p="models"]');modelPane.querySelector('h2').textContent='Start with a box';modelPane.querySelector('p').textContent='Choose a shape. You can change its size and finish later.';

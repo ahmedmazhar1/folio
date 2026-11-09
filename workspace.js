@@ -3,7 +3,7 @@ let currentId=null;
 function readStore(k){try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return []}}
 function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').style.display='none',4200)}
 function persist(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch{toast('Browser storage is full or unavailable. Download a backup instead.');return false}}
-const workspaceViews=['home','library','editor','hoodie','templates','projects'];
+const workspaceViews=['home','shop','library','editor','hoodie','templates','projects'];
 function view(name){
   const previous=document.body.dataset.view;
   for(const id of workspaceViews) $(id).hidden=id!==name;
@@ -21,7 +21,7 @@ function view(name){
   if(name==='templates') renderTemplates();
   if(name==='editor') requestAnimationFrame(resize);
   if(previous && previous!==name) window.scrollTo(0,0);
-  if(location.hash.slice(1)!==name) location.hash=name;
+  if(location.hash.slice(1).split(/[/?]/)[0]!==name) location.hash=name;
 }
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>view(b.dataset.view));document.querySelector('.brand').onclick=e=>{e.preventDefault();view('home')};
 function imageData(im){if(!im)return null;const c=document.createElement('canvas');const scale=Math.min(1,1400/Math.max(im.width,im.height));c.width=Math.max(1,im.width*scale);c.height=Math.max(1,im.height*scale);c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/png')}
@@ -60,13 +60,13 @@ function makePreviews(){
 }
 function renderTemplates(){if(!previews.length)makePreviews();$('templateGrid').innerHTML='';PRESETS.forEach((p,i)=>{if(!(p.board+' '+p.n).toLowerCase().includes($('searchTemplates').value.toLowerCase()))return;const b=document.createElement('button');b.className='template';b.innerHTML=`<img alt="${p.n} dieline" src="${previews[i]}"><div class="info"><span class="arrow">↗</span><strong>${p.n}</strong><small>${p.board} · ${p.d.join(' × ')} mm · Customizable</small></div>`;b.onclick=()=>{S.template=p.id;[S.L,S.W,S.H]=p.d;refresh();commit();view('editor')};$('templateGrid').append(b)});if(!$('templateGrid').children.length)empty($('templateGrid'),'No matching templates. Try “mailer”, “gift”, or “flat”.')}
 $('searchTemplates').oninput=renderTemplates;
-function quote(){const p=price();$('quoteSpecs').textContent=`${$('projectName').value} · ${S.L} × ${S.W} × ${S.H} mm · ${$('mat').selectedOptions[0].text} · ${$('fin').selectedOptions[0].text} · ${S.qty} units. Illustrative estimate: $${p.t.toFixed(2)} USD. Supplier pricing, shipping and taxes are unconfirmed.`;$('quoteDialog').showModal()}
+function quote(){const p=price();$('quoteSpecs').textContent=`${$('projectName').value} · ${S.L} × ${S.W} × ${S.H} mm · ${$('mat').selectedOptions[0].text} · ${$('fin').selectedOptions[0].text} · ${S.qty} units. Custom quote required. Final pricing, shipping and taxes need confirmation.`;$('quoteDialog').showModal()}
 $('quote').onclick=quote;$('topQuote').onclick=quote;document.querySelector('.close').onclick=()=>$('quoteDialog').close();$('quoteForm').onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),text=['FOLIO STUDIO — QUOTE BRIEF','NOT SUBMITTED · Supplier review required','', $('quoteSpecs').textContent,'',...Object.entries(f).map(([k,v])=>k+': '+v),'','Artwork is included in the separate project backup. Dieline is for review only.'].join('\n');const q={id:crypto.randomUUID(),projectName:$('projectName').value,text};persist(quoteKey,[q,...readStore(quoteKey)]);download('folio-quote-brief.txt',text,'text/plain');$('quoteDialog').close();toast('Brief downloaded. Share it with your supplier.');};
 const dims=document.createElement('div');dims.className='dimension-inputs';['L','W','H'].forEach((k,i)=>{const label=document.createElement('label');label.textContent=['Length (mm)','Width (mm)','Height (mm)'][i];const n=document.createElement('input');n.type='number';n.min=$(k).min;n.max=$(k).max;n.step='0.1';n.value=S[k];n.onchange=()=>{if(!n.checkValidity()){n.reportValidity();return}S[k]=+n.value;refresh();commit()};label.append(n);dims.append(label);$(k).addEventListener('input',()=>n.value=S[k])});document.querySelector('.pane[data-p="material"]').append(dims);
 const layers=document.createElement('div');layers.innerHTML='<div class="lbl">Artwork layers</div><div id="layers"></div>';document.querySelector('.pane[data-p="artwork"]').append(layers);
 function renderLayers(){if(!$('layers'))return;$('layers').innerHTML='';S.E.forEach(e=>{const r=document.createElement('div');r.className='layer-row';const b=document.createElement('button');b.textContent=e.type==='img'?'Image '+e.lib:e.text||'Empty text';b.onclick=()=>select(e.id,true);const face=document.createElement('select');face.setAttribute('aria-label','Artwork face');['front','back','left','right','lid','inside'].forEach(f=>face.add(new Option(f,f)));face.value=e.face;face.onchange=()=>{e.face=face.value;paintAll();commit()};r.append(b,face);$('layers').append(r)})}
-const label=document.createElement('div');label.className='estimate-label';label.textContent='ILLUSTRATIVE ESTIMATE · USD';$('price').before(label);renderLayers();
-window.addEventListener('hashchange',()=>{const n=location.hash.slice(1);view(workspaceViews.includes(n)?n:'home')});view(workspaceViews.includes(location.hash.slice(1))?location.hash.slice(1):'home');
+const label=document.createElement('div');label.className='estimate-label';label.textContent='CUSTOM PACKAGING · PKR QUOTE';$('price').before(label);renderLayers();
+window.addEventListener('hashchange',()=>{const n=location.hash.slice(1).split(/[/?]/)[0];view(workspaceViews.includes(n)?n:'home')});view(workspaceViews.includes(location.hash.slice(1).split(/[/?]/)[0])?location.hash.slice(1).split(/[/?]/)[0]:'home');
 
 const baseRefresh=refresh;refresh=function(){baseRefresh();document.querySelectorAll('.dimension-inputs input').forEach((n,i)=>n.value=S[['L','W','H'][i]])};
 // Selected artwork inspector: same state as direct manipulation on the 3D model.

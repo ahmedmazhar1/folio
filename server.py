@@ -1,5 +1,6 @@
 """Folio API v1 and local website server. Python standard library only."""
 import json, math, os
+from decimal import Decimal, ROUND_HALF_UP
 from packaging import manifest, pose, recommend_product
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -45,13 +46,87 @@ def config(data):
     return dict(template_id=template,dimensions_mm=d,material=mat,finish=finish,quantity=q,dimension_basis='nominal preview dimensions; usable internal size is not verified',production_ready=False)
 
 def estimate(c):
-    l,w,h=(c['dimensions_mm'][k] for k in ('L','W','H')); q=c['quantity']
-    area=2*(l*w+l*h+w*h)/100
-    rate={'kraft':.003,'sbs':.0034,'rigid':.009}[c['material']]
-    finish={'matte':.12,'gloss':.15,'soft':.35}[c['finish']]
-    discount=1-min(.4,math.log10(q/100)*.2)
-    unit=(area*rate+area*.0008+finish)*discount+120/q
-    return dict(currency='USD',unit_price=round(unit,2),total=round(unit*q,2),quantity=q,illustrative=True,formula_version='prototype-1',excludes=['shipping','taxes'],notice='Illustrative formula only. No supplier price or order commitment.')
+    return dict(currency='PKR',unit_price=None,total=None,quantity=c['quantity'],quote_required=True,
+                illustrative=False,excludes=['shipping','taxes'],
+                notice='Custom dimensions, material and printing need a confirmed quote. No price has been calculated.')
+
+def load_catalogue():
+    """Load the merchant-maintained guide catalogue, never request-supplied prices."""
+    path=ROOT/'shop-catalogue.json'
+    if not path.is_file(): return []
+    products=json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(products,list): raise ValueError('Product catalogue must be an array.')
+    return products
+
+def catalogue_estimate(data):
+    items=data.get('items')
+    if not isinstance(items,list) or not 1<=len(items)<=100:
+        raise Invalid('items must contain between 1 and 100 products.')
+    products={p['id']:p for p in load_catalogue()}
+    lines=[]
+    subtotal=Decimal('0')
+    for item in items:
+        if not isinstance(item,dict): raise Invalid('Each item must be an object.')
+        product_id=item.get('productId')
+        if not isinstance(product_id,str) or product_id not in products:
+            raise Invalid('Unknown productId.')
+        product=products[product_id]
+        option_index=item.get('optionIndex',0)
+        options=product.get('options',[])
+        if isinstance(option_index,bool) or not isinstance(option_index,int) or not 0<=option_index<len(options):
+            raise Invalid('Unknown optionIndex.')
+        option=options[option_index]
+        quantity=item.get('quantity')
+        minimum=option.get('minQty',1)
+        step=option.get('step',1)
+        if isinstance(quantity,bool) or not isinstance(quantity,int) or not minimum<=quantity<=100000:
+            raise Invalid(f'quantity must be a whole number from {minimum} to 100000.')
+        if (quantity-minimum)%step: raise Invalid(f'quantity must increase in steps of {step} from {minimum}.')
+        custom_print=item.get('customPrint',False)
+        if not isinstance(custom_print,bool): raise Invalid('customPrint must be true or false.')
+        unit_price=option.get('unitPrice')
+        has_price=(not isinstance(unit_price,bool) and isinstance(unit_price,(int,float))
+                   and math.isfinite(unit_price) and unit_price>=0)
+        quote_required=custom_print or not has_price
+        pack_units=option.get('unitsPerPack',1)
+        total_units=quantity*pack_units
+        total=None
+        if not quote_required:
+            amount=(Decimal(str(unit_price))*total_units).quantize(Decimal('.01'),rounding=ROUND_HALF_UP)
+            total=float(amount)
+            subtotal+=amount
+        lines.append(dict(productId=product_id,name=product['name'],optionIndex=option_index,
+                          optionLabel=option['label'],quantity=quantity,unitsPerPack=pack_units,
+                          totalUnits=total_units,unitPrice=unit_price if has_price else None,
+                          guideTotal=total,lineTotal=total,quoteRequired=quote_required,customPrint=custom_print,
+                          basis=option.get('basis',''),source=option.get('source'),currency='PKR'))
+    unpriced=any(line['quoteRequired'] for line in lines)
+    return dict(currency='PKR',subtotal=float(subtotal),quoteRequired=unpriced,hasUnpriced=unpriced,
+                guideOnly=True,lines=lines,excludes=['shipping','taxes'],
+                notice='Guide prices pending confirmation. Custom printing, delivery and taxes are quoted separately. This is not an order.')
+
+def same_origin(origin,host):
+    """Match browser origins against the served host; accept TLS terminated by a proxy."""
+    if origin is None: return True
+    try:
+        source=urlsplit(origin)
+        destination=urlsplit('//'+(host or ''))
+        if source.scheme not in ('http','https') or source.username or source.password:
+            return False
+        if source.path or source.query or source.fragment or not source.hostname or not destination.hostname:
+            return False
+        source_port=source.port or (443 if source.scheme=='https' else 80)
+        destination_port=destination.port or (443 if source.scheme=='https' else 80)
+        return source.hostname.lower()==destination.hostname.lower() and source_port==destination_port
+    except ValueError:
+        return False
+
+def server_address():
+    host=os.environ.get('HOST','127.0.0.1')
+    try: port=int(os.environ.get('PORT','4173'))
+    except ValueError: raise ValueError('PORT must be a whole number from 1 to 65535.')
+    if not 1<=port<=65535: raise ValueError('PORT must be a whole number from 1 to 65535.')
+    return host,port
 
 def recommend(data):
     unit=data.get('unit','mm')
@@ -96,20 +171,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length',str(len(content)));self.send_header('X-Content-Type-Options','nosniff');self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(content)
     def do_GET(self):
         path=urlsplit(self.path).path
-        if path=='/api/v1/health': return self.send(200,dict(status='ok',service='Folio Packaging API',version='1.0',mode='local-development'))
+        if path=='/api/v1/health': return self.send(200,dict(status='ok',service='Folio Packaging API',version='1.0',mode='catalogue-and-mockup-preview'))
         if path=='/catalog.js': return self.send(200,'window.FOLIO_TEMPLATES='+json.dumps(TEMPLATES)+';window.FOLIO_MODELS='+json.dumps({t['id']:manifest(t['id'],t['dimensions_mm']) for t in TEMPLATES})+';', 'text/javascript')
         if path=='/api/v1/templates': return self.send(200,dict(templates=TEMPLATES,limits_mm=LIMITS,materials=['kraft','sbs','rigid'],finishes=['matte','gloss','soft']))
-        allowed={'/garment-model.js':'garment-model.js','/story.css':'story.css','/story.js':'story.js','/story-scene.js':'story-scene.js','/hoodie':'hoodie.html','/hoodie.js':'hoodie.js','/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/editor.js':'editor.js','/workspace.js':'workspace.js','/api-client.js':'api-client.js','/studio.js':'studio.js','/folding-engine.js':'folding-engine.js','/product.js':'product.js','/embed-demo':'embed-demo.html','/api-docs':'api-docs.html','/vendor/three.min.js':'vendor/three.min.js'}
+        if path=='/api/v1/products': return self.send(200,dict(currency='PKR',products=load_catalogue()))
+        allowed={'/shop.css':'shop.css','/shop.js':'shop.js','/shop-art.js':'shop-art.js','/shop-data.js':'shop-data.js','/shop-catalogue.json':'shop-catalogue.json','/favicon.svg':'favicon.svg','/robots.txt':'robots.txt','/garment-model.js':'garment-model.js','/story.css':'story.css','/story.js':'story.js','/story-scene.js':'story-scene.js','/hoodie':'hoodie.html','/hoodie.js':'hoodie.js','/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/editor.js':'editor.js','/workspace.js':'workspace.js','/api-client.js':'api-client.js','/studio.js':'studio.js','/folding-engine.js':'folding-engine.js','/product.js':'product.js','/embed-demo':'embed-demo.html','/api-docs':'api-docs.html','/vendor/three.min.js':'vendor/three.min.js'}
         if path not in allowed:return self.send(404,dict(error='not_found',message='Route not found.'))
         f=ROOT/allowed[path]
-        kinds={'.html':'text/html','.js':'text/javascript','.css':'text/css'}
+        if not f.is_file():return self.send(404,dict(error='not_found',message='Route not found.'))
+        kinds={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.txt':'text/plain'}
+        if f.suffix=='.json': return self.send(200,json.loads(f.read_text(encoding='utf-8')))
         return self.send(200,f.read_bytes(),kinds.get(f.suffix,'application/octet-stream'))
     def do_POST(self):
         path=urlsplit(self.path).path
-        if path not in ['/api/v1/configurations/validate','/api/v1/estimates','/api/v1/dielines','/api/v1/sizing/recommend','/api/v1/models','/api/v1/models/pose','/api/v1/recommendations']:return self.send(404,dict(error='not_found',message='Route not found.'))
-        # Local server only; reject browser cross-origin submissions.
+        if path not in ['/api/v1/configurations/validate','/api/v1/estimates','/api/v1/catalogue/estimate','/api/v1/dielines','/api/v1/sizing/recommend','/api/v1/models','/api/v1/models/pose','/api/v1/recommendations']:return self.send(404,dict(error='not_found',message='Route not found.'))
+        # The API is same-origin. No cross-site browser submissions or CORS access.
         origin=self.headers.get('Origin')
-        if origin and origin not in ('http://localhost:4173','http://127.0.0.1:4173'):return self.send(403,dict(error='origin_not_allowed',message='Use the local Folio website.'))
+        if not same_origin(origin,self.headers.get('Host')):return self.send(403,dict(error='origin_not_allowed',message='Use the Folio website on the same domain.'))
         if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.send(415,dict(error='content_type',message='Send application/json.'))
         try:
             size=int(self.headers.get('Content-Length',0))
@@ -117,6 +195,7 @@ class Handler(BaseHTTPRequestHandler):
             self.connection.settimeout(10)
             data=json.loads(self.rfile.read(size))
             if not isinstance(data,dict):raise Invalid('Request body must be an object.')
+            if path.endswith('/catalogue/estimate'):return self.send(200,catalogue_estimate(data))
             if path.endswith('/recommendations'):
                 description=data.get('description','')
                 if not isinstance(description,str) or not 10<=len(description)<=2000:raise Invalid('Describe the product in 10–2000 characters.')
@@ -138,5 +217,7 @@ class Handler(BaseHTTPRequestHandler):
         except TimeoutError:return self.send(408,dict(error='timeout',message='Request timed out.'))
 
 if __name__=='__main__':
-    print('Folio Studio: http://localhost:4173 | API docs: http://localhost:4173/api-docs',flush=True)
-    ThreadingHTTPServer(('127.0.0.1',4173),Handler).serve_forever()
+    host,port=server_address()
+    display_host='localhost' if host in ('0.0.0.0','127.0.0.1','::') else host
+    print(f'Folio Studio: http://{display_host}:{port} | API docs: http://{display_host}:{port}/api-docs',flush=True)
+    ThreadingHTTPServer((host,port),Handler).serve_forever()

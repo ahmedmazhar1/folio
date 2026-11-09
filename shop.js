@@ -1,0 +1,108 @@
+/* A guide catalogue and a locally saved quote list. No order is submitted here. */
+(function () {
+  'use strict';
+  const products=window.FOLIO_SHOP_PRODUCTS,categories=window.FOLIO_SHOP_CATEGORIES;
+  const byId=new Map(products.map(p=>[p.id,p]));
+  const $s=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money=v=>'Rs '+Number(v).toLocaleString('en-PK',{maximumFractionDigits:2});
+  const labelOf=id=>categories.find(c=>c.id===id)?.name||'All products';
+  const BAG_KEY='folio.shop.quote.v1';
+  const filters={category:'all',use:'all',query:'',priced:false,studio:false,sort:'featured',limit:12};
+  let activeProduct=null,returnFocus=null;
+  function validLine(line){const p=byId.get(line?.productId),o=p?.options[line?.optionIndex];return !!(o&&Number.isInteger(line.quantity)&&line.quantity>=o.minQty&&line.quantity<=100000&&(line.quantity-o.minQty)%o.step===0&&typeof line.customPrint==='boolean')}
+  let bag=[];try{const saved=JSON.parse(localStorage.getItem(BAG_KEY)||'[]');if(Array.isArray(saved))bag=saved.filter(validLine).slice(0,100)}catch{}
+  const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function announce(message){if(typeof toast==='function')toast(message)}
+  function saveBag(){try{localStorage.setItem(BAG_KEY,JSON.stringify(bag))}catch{announce('Your browser could not save this list. Download a brief to keep it.')}updateCount()}
+  function updateCount(){$s('shopBagCount').textContent=bag.length;$s('shopBagButton').setAttribute('aria-label',`Open quote list, ${bag.length} product ${bag.length===1?'configuration':'configurations'}`)}
+  function showDialog(id){returnFocus=document.activeElement;$s(id).showModal()}
+  function closeDialog(id){$s(id).close()}
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeDialog(b.dataset.close));
+  ['shopProductDialog','shopBagDialog','shopInfoDialog'].forEach(id=>{
+    const dialog=$s(id);dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});
+    dialog.addEventListener('close',()=>{if(id==='shopProductDialog'){activeProduct=null;if(location.hash.startsWith('#shop/'))history.replaceState(null,'','#shop')}if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true})});
+  });
+  $s('shopHeroArt').insertAdjacentHTML('afterbegin',FolioShopHero());
+  $s('shopStudioArt').innerHTML=FolioShopArt('hoodie')+FolioShopArt('mailer');
+  $s('shopYear').textContent=new Date().getFullYear();
+  categories.forEach(c=>{
+    const count=products.filter(p=>p.category===c.id).length;
+    const b=document.createElement('button');b.className='shop-collection-card';b.innerHTML=`<span class="collection-art">${FolioShopArt(c.kind)}</span><strong>${esc(c.name)}</strong><small>${count} ideas to explore ↗</small>`;b.onclick=()=>chooseCategory(c.id,true);$s('shopCollections').append(b);
+  });
+  function makeCategoryFilters(){const container=$s('shopCategoryFilters');container.innerHTML='';[{id:'all',name:'All products'},...categories].forEach(c=>{const b=document.createElement('button');b.className='shop-category-filter';b.setAttribute('aria-pressed',String(c.id===filters.category));b.innerHTML=`${esc(c.name)}<span>${c.id==='all'?products.length:products.filter(p=>p.category===c.id).length}</span>`;b.onclick=()=>chooseCategory(c.id);container.append(b)})}
+  function chooseCategory(category,scroll=false){filters.category=category;filters.use='all';filters.limit=12;location.hash='shop?category='+encodeURIComponent(category);syncFilterControls();renderProducts();if(scroll)scrollToCatalogue()}
+  function scrollToCatalogue(){requestAnimationFrame(()=>$s('shopCatalogue').scrollIntoView({behavior:reduced()?'instant':'smooth',block:'start'}))}
+  function syncFilterControls(){makeCategoryFilters();document.querySelectorAll('[data-use]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.use===filters.use)));$s('shopPriced').checked=filters.priced;$s('shopStudioOnly').checked=filters.studio;$s('shopSearch').value=filters.query;$s('shopSort').value=filters.sort}
+  function reset(){Object.assign(filters,{category:'all',use:'all',query:'',priced:false,studio:false,sort:'featured',limit:12});history.replaceState(null,'','#shop');syncFilterControls();renderProducts()}
+  function lowestPrice(p){const prices=p.options.filter(o=>o.unitPrice!==null).map(o=>o.unitPrice*o.unitsPerPack);return prices.length?Math.min(...prices):Infinity}
+  function cardPrice(p){const o=p.options.find(o=>o.unitPrice!==null);return o?`${money(o.unitPrice*o.unitsPerPack)} <small>/ ${o.unitsPerPack>1?o.unitsPerPack+' pieces':'piece'}</small>`:'Custom quote'}
+  function renderProducts(){
+    const q=filters.query.toLowerCase().trim();let list=products.filter(p=>(filters.category==='all'||p.category===filters.category)&&(filters.use==='all'||p.uses.includes(filters.use))&&(!filters.priced||Number.isFinite(lowestPrice(p)))&&(!filters.studio||p.studio)&&(!q||[p.name,p.description,p.size,p.material,labelOf(p.category)].join(' ').toLowerCase().includes(q)));
+    if(filters.sort==='price-low')list.sort((a,b)=>lowestPrice(a)-lowestPrice(b));
+    if(filters.sort==='price-high')list.sort((a,b)=>{const x=lowestPrice(a),y=lowestPrice(b);return x===Infinity?1:y===Infinity?-1:y-x});
+    if(filters.sort==='name')list.sort((a,b)=>a.name.localeCompare(b.name));
+    $s('catalogueTitle').textContent=filters.category==='all'?'Find your next favourite.':labelOf(filters.category)+'.';
+    $s('shopResults').textContent=`${list.length} ${list.length===1?'product':'products'}${filters.query?' matching “'+filters.query+'”':''}`;
+    $s('shopProducts').innerHTML='';$s('shopEmpty').hidden=!!list.length;$s('shopLoadMore').hidden=list.length<=filters.limit;
+    list.slice(0,filters.limit).forEach(p=>{
+      const article=document.createElement('article');article.className='shop-product-card';
+      article.innerHTML=`<button class="shop-product-image" aria-label="View ${esc(p.name)}"><span class="shop-card-tag">${p.studio?'3D studio available':Number.isFinite(lowestPrice(p))?'Guide price':'Made to your brief'}</span>${FolioShopArt(p.kind)}<span class="shop-image-arrow" aria-hidden="true">↗</span></button><span class="shop-card-category">${esc(labelOf(p.category))}</span><button class="shop-card-title">${esc(p.name)}</button><span class="shop-card-size">${esc(p.size)}</span><div class="shop-card-bottom"><span class="shop-card-price">${cardPrice(p)}</span><button class="shop-card-config">Choose options ↗</button></div>`;
+      article.querySelectorAll('button').forEach(b=>b.onclick=()=>openProduct(p.id));$s('shopProducts').append(article);
+    });
+  }
+  $s('shopSearch').oninput=e=>{filters.query=e.target.value;filters.limit=12;renderProducts()};
+  $s('shopPriced').onchange=e=>{filters.priced=e.target.checked;filters.limit=12;renderProducts()};
+  $s('shopStudioOnly').onchange=e=>{filters.studio=e.target.checked;filters.limit=12;renderProducts()};
+  $s('shopSort').onchange=e=>{filters.sort=e.target.value;renderProducts()};
+  $s('shopReset').onclick=reset;$s('shopClearSearch').onclick=reset;$s('shopLoadMore').onclick=()=>{filters.limit+=12;renderProducts()};
+  document.querySelectorAll('[data-use]').forEach(b=>b.onclick=()=>{filters.use=b.dataset.use;filters.category='all';filters.limit=12;history.replaceState(null,'','#shop');syncFilterControls();renderProducts()});
+  function openProduct(id,route=true){
+    const p=byId.get(id);if(!p)return;activeProduct=p;
+    $s('shopProductContent').innerHTML=`<div class="shop-product-layout"><div class="shop-detail-visual">${FolioShopArt(p.kind)}<p>Original product illustration · Final specification may vary</p></div><div class="shop-detail-content"><span class="shop-kicker">${esc(labelOf(p.category))}</span><h2 id="shopProductTitle">${esc(p.name)}</h2><p class="shop-detail-description">${esc(p.description)}</p><dl class="shop-detail-specs"><div><dt>Material</dt><dd>${esc(p.material)}</dd></div><div><dt>Size / capacity</dt><dd>${esc(p.size)}</dd></div></dl><form id="shopProductForm"><div class="shop-detail-controls"><label>Size / specification<select id="shopOption">${p.options.map((o,i)=>`<option value="${i}">${esc(o.label)}${o.unitsPerPack>1?' · pack of '+o.unitsPerPack:''}</option>`).join('')}</select></label><label id="shopQtyLabel">Quantity<input id="shopQuantity" type="number" inputmode="numeric" required max="100000" value="${p.quantityDefault}"></label></div><p class="shop-detail-notice" id="shopMinNote"></p><label class="shop-custom-toggle"><input type="checkbox" id="shopCustomPrint"> Add custom printing / a different finish</label><label>Anything we should know? <span>(optional)</span><textarea id="shopProductNotes" maxlength="500" rows="2" placeholder="Colour, logo placement, exact dimensions…"></textarea></label><div class="shop-detail-price" id="shopDetailPrice" aria-live="polite"></div><div class="shop-detail-actions"><button type="submit" class="shop-button yellow">Add to quote list <span>+</span></button>${p.studio?'<button type="button" class="shop-button" id="shopOpenStudio">Try it in the 3D studio ↗</button>':''}</div></form><div class="shop-detail-source" id="shopDetailSource"></div><p class="shop-detail-notice">Guide only. Availability, production time, delivery and tax need confirmation. ${p.studio?esc(p.studioNote):''}</p></div></div>`;
+    function updatePrice(resetQty=false){
+      const o=p.options[+$s('shopOption').value],q=$s('shopQuantity');q.min=o.minQty;q.step=o.step;if(resetQty||+q.value<o.minQty)q.value=Math.max(o.minQty,p.quantityDefault);$s('shopQtyLabel').firstChild.textContent=o.unitsPerPack>1?'Packs':'Quantity';
+      const totalUnits=(+q.value||0)*o.unitsPerPack,custom=$s('shopCustomPrint').checked,hasPrice=o.unitPrice!==null&&!custom;
+      $s('shopMinNote').textContent=(p.minimumConfirmed?`Minimum ${o.minQty} ${o.unitsPerPack>1?'pack':'pieces'}. `:'Requested quantity; minimum production quantity will be confirmed. ')+(o.unitsPerPack>1?`${o.unitsPerPack} pieces per pack. ${totalUnits} pieces selected.`:'');
+      $s('shopDetailPrice').innerHTML=hasPrice?`<div><strong>${money(o.unitPrice*totalUnits)}</strong><small>Guide total · ${totalUnits} ${totalUnits===1?'piece':'pieces'}</small></div><span>${money(o.unitPrice)} / piece${o.unitsPerPack>1?'<br>'+money(o.unitPrice*o.unitsPerPack)+' / pack':''}</span>`:'<div><strong>Let’s quote it.</strong><small>Price depends on your final specification.</small></div>';
+      $s('shopDetailSource').innerHTML=`<strong>${hasPrice?'Price basis: ':'Specification reference: '}</strong>${esc(o.basis)}. <a href="${esc(o.source.url)}" target="_blank" rel="noopener noreferrer">${esc(o.source.name)} reference ↗</a><br>Researched ${esc(o.source.date)}. A market reference, not a supplier partnership.`;
+    }
+    $s('shopOption').onchange=()=>updatePrice(true);$s('shopQuantity').oninput=()=>updatePrice();$s('shopCustomPrint').onchange=()=>updatePrice();updatePrice();
+    $s('shopProductForm').onsubmit=e=>{e.preventDefault();const line={productId:p.id,optionIndex:+$s('shopOption').value,quantity:+$s('shopQuantity').value,customPrint:$s('shopCustomPrint').checked,notes:$s('shopProductNotes').value.trim()};if(!validLine(line)){announce('Choose a valid quantity.');return}if(bag.length>=100){announce('Your quote list has room for 100 configurations. Download this brief before starting another.');return}bag.push(line);saveBag();closeDialog('shopProductDialog');announce(`${p.name} added to your quote list.`)};
+    if(p.studio)$s('shopOpenStudio').onclick=()=>{closeDialog('shopProductDialog');if(['hoodie','tshirt-short','tshirt-long'].includes(p.studio)){openApparel(p.studio)}else{startModel(p.studio,false);announce('The studio shows an illustrative structure. Confirm your stock size and construction in the quote.')}};
+    if(!$s('shopProductDialog').open)showDialog('shopProductDialog');
+    if(route)history.replaceState(null,'','#shop/'+encodeURIComponent(id));
+  }
+  function lineGuide(line){const o=byId.get(line.productId).options[line.optionIndex];return line.customPrint||o.unitPrice===null?null:o.unitPrice*o.unitsPerPack*line.quantity}
+  function renderBag(){
+    const root=$s('shopBagLines');root.innerHTML='';$s('shopBriefForm').hidden=!bag.length;$s('shopBriefStatus').textContent='';
+    if(!bag.length){root.innerHTML='<div class="shop-bag-empty"><span class="shop-kicker">A LITTLE ROOM FOR YOUR NEXT IDEA</span><h3>Your list is waiting for you.</h3><p>Pick a product, choose your specification<br>and add it here for a clear quote brief.</p><button class="shop-button yellow" id="shopStartList">Explore the collection ↗</button></div>';$s('shopStartList').onclick=()=>{closeDialog('shopBagDialog');view('shop')};$s('shopBagSummary').innerHTML='';return}
+    bag.forEach((line,i)=>{
+      const p=byId.get(line.productId),o=p.options[line.optionIndex],total=lineGuide(line),article=document.createElement('article');article.className='shop-bag-line';
+      article.innerHTML=`${FolioShopArt(p.kind)}<div><h3>${esc(p.name)}</h3><p>${esc(o.label)}${o.unitsPerPack>1?' · '+o.unitsPerPack+' per pack':''}${line.customPrint?' · Custom print / finish':''}${line.notes?'<br>'+esc(line.notes):''}</p><div class="shop-line-controls"><button data-line-minus aria-label="Reduce ${esc(p.name)} quantity" ${line.quantity<=o.minQty?'disabled':''}>−</button><span>${line.quantity}${o.unitsPerPack>1?' packs':''}</span><button data-line-plus aria-label="Increase ${esc(p.name)} quantity" ${line.quantity+o.step>100000?'disabled':''}>+</button><button class="shop-remove" data-line-remove>Remove</button></div></div><strong>${total===null?'To quote':money(total)}<small>${total===null?'Custom price':'Guide total'}</small></strong>`;
+      function changeQuantity(delta,selector){line.quantity=Math.max(o.minQty,Math.min(100000,line.quantity+delta));saveBag();renderBag();const row=root.children[i],control=row?.querySelector(selector);(control&&!control.disabled?control:row?.querySelector('[data-line-remove]'))?.focus()}
+      article.querySelector('[data-line-minus]').onclick=()=>changeQuantity(-o.step,'[data-line-minus]');article.querySelector('[data-line-plus]').onclick=()=>changeQuantity(o.step,'[data-line-plus]');article.querySelector('[data-line-remove]').onclick=()=>{bag.splice(i,1);saveBag();renderBag();(root.children[Math.min(i,bag.length-1)]?.querySelector('[data-line-remove]')||$s('shopStartList'))?.focus()};root.append(article);
+    });
+    const known=bag.map(lineGuide).filter(v=>v!==null),unpriced=bag.length-known.length,subtotal=known.reduce((a,b)=>a+b,0);
+    $s('shopBagSummary').innerHTML=`<div class="shop-bag-totals"><span>${known.length?'Guide subtotal':'Your list is ready for a quote'}</span><strong>${known.length?money(subtotal):'To quote'}</strong></div><p class="shop-bag-summary-note">${unpriced?`${unpriced} ${unpriced===1?'configuration needs':'configurations need'} a custom price. `:''}${known.length?'Guide subtotal covers priced items only. ':''}Final stock, artwork, minimum quantity, production time, tax and delivery need confirmation. No order has been placed.</p>`;
+  }
+  $s('shopBagButton').onclick=()=>{renderBag();showDialog('shopBagDialog')};
+  $s('shopBriefForm').onsubmit=async e=>{
+    e.preventDefault();const button=e.target.querySelector('[type=submit]');button.disabled=true;$s('shopBriefStatus').textContent='Preparing your brief…';
+    try{
+      const briefItems=bag.map(line=>({...line}));
+      const response=await fetch('/api/v1/catalogue/estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:briefItems.map(({productId,optionIndex,quantity,customPrint})=>({productId,optionIndex,quantity,customPrint}))})});
+      if(!response.ok){let err;try{err=(await response.json()).message}catch{}throw Error(err||'The quote service could not check this list. Please try again.')}
+      const estimate=await response.json(),f=Object.fromEntries(new FormData(e.target)),lines=['FOLIO — YOUR QUOTE BRIEF','DRAFT ONLY · No order placed · No payment taken','Created: '+new Date().toISOString().slice(0,10),'','Customer: '+f.name,'Email: '+f.email,'Delivery city: '+f.city,'Needed by: '+(f.neededBy||'To confirm'),''];
+      estimate.lines.forEach((line,i)=>{const local=briefItems[i];lines.push(`${i+1}. ${line.name}`,`Specification: ${line.optionLabel}`,`Quantity: ${line.quantity} ${line.unitsPerPack>1?'packs × '+line.unitsPerPack+' pieces':'pieces'} (${line.totalUnits} total pieces)`,`Printing / finish: ${line.customPrint?'Custom, quote required':'As listed; confirm final proof'}`,`Guide total: ${line.guideTotal===null?'To quote':money(line.guideTotal)+' PKR'}`,`Price basis: ${line.basis}`,`Reference: ${line.source?.url||'Custom specification'}`,`Product notes: ${local.notes||'None'}`,'')});
+      lines.push('GUIDE SUBTOTAL (priced items only): '+(estimate.lines.some(l=>l.guideTotal!==null)?money(estimate.subtotal)+' PKR':'To quote'),estimate.hasUnpriced?'Some items need a separate custom price.':'All prices are research-based guides, subject to confirmation.','Tax, shipping, artwork/setup, custom print and discounts are not confirmed.','','Customer notes: '+(f.notes||'None'),'','NEXT STEP: Share this brief with your chosen production contact. Confirm availability, minimum quantity, artwork proof, material, production time and final delivered price before ordering.','Mockup illustrations are not production proofs. Export your design / project backup separately if required.','This website version downloads briefs. It does not send them to a supplier, take payment, or create an order.');
+      const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='folio-quote-brief-'+new Date().toISOString().slice(0,10)+'.txt';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$s('shopBriefStatus').textContent='Your brief has downloaded. Share it with your production contact to confirm the final quote.';
+    }catch(err){$s('shopBriefStatus').textContent=err.message}finally{button.disabled=false}
+  };
+  function info(kind){
+    const content=kind==='privacy'?['Your ideas stay with you.','<p>The quote list, packaging projects and apparel designs are saved in this browser on this device. They are not an online account and do not sync automatically.</p><p>The name, email and city you enter are used to create your downloaded brief. This version does not store those contact details on the server or send them to a supplier. If you share a downloaded brief, the recipient receives its contents.</p><p>Artwork stays in the local editor. You choose when to download it. Google Fonts is used for type; your browser may contact Google to load it. You can clear saved projects and quote lists through your browser’s site-data settings.</p>']:kind==='ordering'?['A clear path to your quote.','<p>This version is a product catalogue and quote-brief builder. It does not accept payment, place an order, reserve stock, or promise a delivery date.</p><p>Before placing an order with your production contact, agree the final product, print proof, quantity, delivered price, payment terms, delivery timing and cancellation / returns terms. Custom printed goods should only go into production after your proof is approved.</p><p>The delivery city and needed-by date in your brief are requirements for your quote, rather than confirmed service commitments.</p>']:['A price you can understand.','<p>Guide prices are market references researched on 9 November 2026 from published product pages. They have not been confirmed as Folio’s selling prices or as a supplier agreement.</p><ul><li>Each guide applies to the stated size and included specification. A pack price always shows its piece count.</li><li>Quantity totals use that guide rate without inventing bulk discounts.</li><li>Changing the size, printing or finish switches to a custom quote.</li><li>Tax, delivery, stock, print setup and production time need confirmation.</li></ul><p>Where a supplier’s price or pack quantity was ambiguous, we show “Custom quote”. Every researched item includes its reference link in the product details.</p>'];
+    $s('shopInfoContent').innerHTML=`<span class="shop-kicker">GOOD TO KNOW</span><h2 id="shopInfoTitle">${content[0]}</h2>${content[1]}`;showDialog('shopInfoDialog');
+  }
+  $s('shopPricingInfo').onclick=()=>info('pricing');document.querySelectorAll('[data-policy]').forEach(b=>b.onclick=()=>info(b.dataset.policy));
+  function readRoute(initial=false){const hash=location.hash.slice(1);if(!hash.startsWith('shop')){if($s('shopProductDialog').open)$s('shopProductDialog').close();return}if(hash.startsWith('shop/')){let id;try{id=decodeURIComponent(hash.slice(5))}catch{history.replaceState(null,'','#shop');announce('That product link could not be opened. Browse the collection below.');return}if(byId.has(id)&&activeProduct?.id!==id)openProduct(id,false);return}if($s('shopProductDialog').open)$s('shopProductDialog').close();const query=new URLSearchParams(hash.split('?')[1]||'');const category=query.get('category');if(category&&(category==='all'||categories.some(c=>c.id===category))){filters.category=category;filters.use='all';filters.limit=12;syncFilterControls();renderProducts();if(!initial)scrollToCatalogue()}}
+  window.addEventListener('hashchange',()=>readRoute());updateCount();syncFilterControls();renderProducts();readRoute(true);
+})();

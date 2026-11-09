@@ -1,0 +1,17 @@
+.git
+.gitignore
+.DS_Store
+__pycache__
+*.py[cod]
+.env
+.env.*
+*.log
+*.zip
+*.png
+*.jpg
+*.jpeg
+*.webp
+research-*.json
+screenshots
+node_modules
+.codex
