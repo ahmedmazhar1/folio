@@ -1,0 +1,41 @@
+/* EcoPak Online's forest green and fresh green, extended into the interactive studio. */
+:root{--ecopak-forest:#1c3a13;--ecopak-fresh:#d3fa99;--ecopak-dark:#101b13;--ecopak-paper:#f2f3e8}
+body[data-view=shop]{background:var(--ecopak-dark)}
+.top .brand{flex:0 0 158px;min-width:158px;margin-right:14px;line-height:1}
+.ecopak-logo{display:block;position:relative;width:158px;height:48px;overflow:hidden}
+.ecopak-logo img{display:block;position:absolute;width:200px;height:112.5px;max-width:none;left:-20px;top:-31px}
+.top .brand-sub{display:none!important}
+body[data-view=shop] .top{background:#122016;border-color:#35452f}
+body[data-view=shop] .top nav button.active{background:#d3fa99;color:#1c3a13}
+.shop-kicker i,.shop-button.yellow{background:var(--ecopak-fresh)}
+.shop-button.yellow{color:#18320f;border-color:var(--ecopak-fresh)}
+.shop-button.yellow:hover{background:#e3ffba}
+.shop-hero h1::first-line{color:var(--ecopak-fresh)}
+.shop-hero{background:radial-gradient(ellipse at 78% 40%,#335c304f,transparent 60%);padding-top:64px;padding-bottom:12px;min-height:555px}
+.shop-hero h1{font-size:clamp(48px,5.8vw,88px);letter-spacing:-.062em}
+.shop-hero-copy>p{max-width:435px;font-size:14px;line-height:1.9}
+.shop-hero-foot{color:#b0c39e;gap:14px}
+.shop-hero-stamp{background:#d3fa99;color:#193411;border-color:#d3fa99;right:-1%;font-weight:600;box-shadow:0 10px 40px #0003}
+.shop-announcement a,.shop-card-price,.shop-detail-price strong,.shop-bag-totals strong,.shop-bag-line>strong{color:var(--ecopak-fresh)}
+.shop-announcement{background:#1c3a13;color:#d8ebc7}
+.shop-collections{border-color:#30442e}
+.shop-collection-card{background:#1d2c1e;border-color:#354b31}
+.shop-category-filter[aria-pressed=true],.shop-use-row button[aria-pressed=true]{background:#d3fa99;color:#193411}
+.shop-footer-brand,.story-brand{letter-spacing:-.065em;font-weight:700}
+.shop-footer-brand span{color:#d3fa99;font-size:.6em;margin-left:5px}
+.shop-footer{align-items:start}
+.shop-footer>div{flex-wrap:wrap;max-width:620px}
+.shop-footer a[href^="tel:"]{color:#d3fa99}
+.shop-side-note span{color:#d3fa99}
+#home.folio-story{--story-yellow:#d3fa99;--story-green:#a7d28d;background:#101b13}
+.story-brand{font-size:32px;color:#d3fa99!important}
+.story-dive{background:#d3fa9910;border-color:#d3fa9950;color:#f1f7e9}
+.story-header-note{letter-spacing:1.5px;font-size:9px}
+#library .home-intro>p{max-width:650px}
+@media(min-width:1250px){.shop-hero-copy{padding-top:12px}.shop-hero h1{margin-top:27px;margin-bottom:25px}.shop-hero-foot{margin-top:42px}}
+@media(max-width:1000px){.top .brand{flex-basis:135px;min-width:135px;margin-right:4px}.ecopak-logo{width:135px}.ecopak-logo img{width:180px;height:101px;left:-20px;top:-25px}.shop-hero{padding-top:45px;min-height:490px}.shop-hero h1{font-size:clamp(46px,6vw,64px)}}
+@media(max-width:740px){.top .brand{flex-basis:145px;min-width:145px}.ecopak-logo{height:45px}.shop-hero{padding-top:32px;min-height:0}.shop-hero h1{font-size:54px;line-height:1.01;margin:20px 0;max-width:100%}.shop-hero-copy>p{font-size:12px;line-height:1.8;max-width:340px}.shop-hero-foot{font-size:7px;gap:10px}.shop-hero-stamp{right:7%;top:5px;width:83px;height:83px}.shop-footer>div{max-width:100%;gap:17px}.story-brand{font-size:25px}.story-header-note{display:none}}
+@media(prefers-reduced-motion:reduce){.shop-hero-stamp{transform:none}}
+.model-reference-note{margin:20px 0 10px;padding:14px;border:1px solid #617250;border-radius:9px;background:#1c301d;color:#c9d8bc;font-size:11px;line-height:1.7}.model-reference-note[hidden]{display:none}
+
+.die-key span:before{border-top-color:var(--die-cut,#cd4158)}.die-key span+span:before{border-top-color:var(--die-crease,#188157)}

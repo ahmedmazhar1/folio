@@ -1,13 +1,14 @@
-"""Folio API v1 and local website server. Python standard library only."""
-import json, math, os
+"""EcoPak catalogue and mockup API. Python standard library only."""
+import json, math, os, sqlite3
 from decimal import Decimal, ROUND_HALF_UP
 from packaging import manifest, pose, recommend_product
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, unquote
+from enquiries import submit_enquiry,EnquiryInvalid,EnquiryRateLimited,email_configuration
 
 ROOT = Path(__file__).resolve().parent
-LIMITS = {'L': (100,400), 'W': (80,300), 'H': (30,200)}
+LIMITS = {'L': (20,1000), 'W': (20,1000), 'H': (5,1000)}
 TEMPLATES = [dict(id=i,name=n,dimensions_mm=dict(zip(('L','W','H'),d)),structure='simplified-hinged-box',production_ready=False) for i,n,d in [('mailer','Mailer box',(220,150,60)),('deep-gift','Deep gift box',(160,160,100)),('slim-flat','Slim flat box',(300,200,40))]]
 TEMPLATES.append(dict(id='tuck-carton',name='Folding carton',dimensions_mm={'L':100,'W':80,'H':160},structure='folding-carton',production_ready=False))
 for board,families in [('Cardboard',['tuck-end','auto-bottom','roll-end','roll-end-wing','simple-tray','frame-tray','paper-bag']),('Corrugated',['tuck-end','auto-bottom','roll-end','roll-end-wing','flap-box'])]:
@@ -15,6 +16,10 @@ for board,families in [('Cardboard',['tuck-end','auto-bottom','roll-end','roll-e
         sizes={'tuck-end':(100,80,160),'auto-bottom':(140,80,170),'roll-end':(220,150,50),'roll-end-wing':(220,150,50),'simple-tray':(190,130,45),'frame-tray':(190,130,45),'paper-bag':(150,90,195),'flap-box':(240,160,140)}
         name=family.replace('-',' ').title() if family!='roll-end-wing' else 'Roll End · Wing Closure'
         TEMPLATES.append(dict(id=('board-' if board=='Cardboard' else 'corr-')+family,name=name,board=board,structure=family,dimensions_mm=dict(zip(('L','W','H'),sizes[family])),production_ready=False))
+TEMPLATES.extend([
+    dict(id='board-window-cake',name='Window cake box · 8.5 × 8.5 × 4 in',board='Reference dielines',structure='double-wall-window-cake',dimensions_mm={'L':215.9,'W':215.9,'H':101.6},defaults={'material':'sbs','color':'#FFFFFF','unit':'in'},material_label='350 gsm white paperboard · 0.5 mm',production_ready=False,reference_note='Screenshot reconstruction · Includes four corner locks, double side walls, two lid wings and a window. Small features are estimated.'),
+    dict(id='board-self-locking-tuck',name='Self-locking brownie box · 10 × 6 × 3 in',board='Reference dielines',structure='self-locking-front-tuck',dimensions_mm={'L':254,'W':152.4,'H':76.2},defaults={'material':'kraft','color':'#B98B5E','unit':'in'},material_label='250 gsm kraft paperboard · 0.33 mm',production_ready=False,reference_note='Screenshot reconstruction · Includes four corner locking tabs, side slots, lid wings and front tuck. Small features are estimated.')
+])
 SOURCE='https://support.pakfactory.com/portal/en/kb/articles/how-do-i-determine-what-size-box-i-need'
 class Invalid(ValueError): pass
 
@@ -51,14 +56,14 @@ def estimate(c):
                 notice='Custom dimensions, material and printing need a confirmed quote. No price has been calculated.')
 
 def load_catalogue():
-    """Load the merchant-maintained guide catalogue, never request-supplied prices."""
+    """Load the imported merchant catalogue, never request-supplied prices."""
     path=ROOT/'shop-catalogue.json'
     if not path.is_file(): return []
     products=json.loads(path.read_text(encoding='utf-8'))
     if not isinstance(products,list): raise ValueError('Product catalogue must be an array.')
     return products
 
-def catalogue_estimate(data):
+def catalogue_estimate(data,allow_unavailable=False):
     items=data.get('items')
     if not isinstance(items,list) or not 1<=len(items)<=100:
         raise Invalid('items must contain between 1 and 100 products.')
@@ -76,6 +81,9 @@ def catalogue_estimate(data):
         if isinstance(option_index,bool) or not isinstance(option_index,int) or not 0<=option_index<len(options):
             raise Invalid('Unknown optionIndex.')
         option=options[option_index]
+        available=option.get('available',product.get('available',True))
+        if available is False and not allow_unavailable:
+            raise Invalid('This product option was unavailable when imported. Check current availability on EcoPak Online.')
         quantity=item.get('quantity')
         minimum=option.get('minQty',1)
         step=option.get('step',1)
@@ -99,11 +107,15 @@ def catalogue_estimate(data):
                           optionLabel=option['label'],quantity=quantity,unitsPerPack=pack_units,
                           totalUnits=total_units,unitPrice=unit_price if has_price else None,
                           guideTotal=total,lineTotal=total,quoteRequired=quote_required,customPrint=custom_print,
-                          basis=option.get('basis',''),source=option.get('source'),currency='PKR'))
+                          basis=option.get('basis',''),source=option.get('source'),currency='PKR',
+                          variantId=option.get('variantId'),available=available,
+                          priceUnit=option.get('priceUnit','piece'),
+                          quantityLabel=option.get('quantityLabel','Quantity'),
+                          compareAtPrice=option.get('compareAtPrice')))
     unpriced=any(line['quoteRequired'] for line in lines)
     return dict(currency='PKR',subtotal=float(subtotal),quoteRequired=unpriced,hasUnpriced=unpriced,
-                guideOnly=True,lines=lines,excludes=['shipping','taxes'],
-                notice='Guide prices pending confirmation. Custom printing, delivery and taxes are quoted separately. This is not an order.')
+                guideOnly=True,snapshotOnly=True,lines=lines,excludes=['shipping','taxes'],
+                notice='Prices and availability reflect the imported EcoPak Online catalogue. Confirm current stock and final totals with EcoPak; custom printing, delivery and taxes may be separate. This is not an order.')
 
 def same_origin(origin,host):
     """Match browser origins against the served host; accept TLS terminated by a proxy."""
@@ -157,37 +169,80 @@ def dieline(c):
     xs,ys=zip(*points)
     left,top=min(xs)-8,min(ys)-8
     width,height=max(xs)-left+8,max(ys)-top+8
+    annotations=''
+    if model.get('reference_kind'):
+        l,w,h=(c['dimensions_mm'][k] for k in ('L','W','H'))
+        def size_label(v):return f'{v/25.4:g} in'
+        def arrow(x1,y1,x2,y2):return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" marker-start="url(#dimArrow)" marker-end="url(#dimArrow)"/>'
+        annotations=('<defs><marker id="dimArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" fill="#147feb"/></marker></defs>'
+            '<g id="dimensions" stroke="#147feb" stroke-width=".45" fill="#147feb" font-family="Arial,sans-serif" font-size="5">'
+            +arrow(-l/2,w*.22,l/2,w*.22)+f'<text x="0" y="{w*.22-3}" text-anchor="middle" stroke="none">{size_label(l)}</text>'
+            +arrow(l*.30,-w/2,l*.30,w/2)+f'<text x="{l*.30+3}" y="3" stroke="none">{size_label(w)}</text>'
+            +arrow(-l*.25,-w/2,-l*.25,-w/2-h)+f'<text x="{-l*.25+3}" y="{-w/2-h/2}" stroke="none">{size_label(h)}</text></g>')
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}mm" height="{height}mm" viewBox="{left} {top} {width} {height}">'
-            '<title>Folio review dieline. Not production ready.</title>'
-            f'<path id="cuts" d="{" ".join(paths["cut"])}" fill="none" stroke="#d83e57" stroke-width=".35"/>'
-            f'<path id="creases" d="{" ".join(paths["crease"])}" fill="none" stroke="#178258" stroke-width=".35" stroke-dasharray="2 1"/></svg>')
+            '<title>EcoPak review dieline. Not production ready.</title>'
+            f'<path id="cuts" d="{" ".join(paths["cut"])}" fill="none" stroke="{model.get("line_colors",{}).get("cut","#d83e57")}" stroke-width=".35"/>'
+            f'<path id="creases" d="{" ".join(paths["crease"])}" fill="none" stroke="{model.get("line_colors",{}).get("crease","#178258")}" stroke-width=".35" stroke-dasharray="2 1"/>{annotations}</svg>')
+
+
+PUBLIC_IMAGE_DIRECTORIES=('ecopak','ecopak-brand')
+PUBLIC_IMAGE_SUFFIXES={'.png','.jpg','.jpeg','.webp','.gif','.avif','.svg'}
+
+def public_image(path):
+    """Serve imported images only, with decoded-path and symlink containment checks."""
+    path=unquote(path)
+    if not any(path.startswith('/assets/'+folder+'/') for folder in PUBLIC_IMAGE_DIRECTORIES):
+        return None
+    try:
+        candidate=(ROOT/path.lstrip('/')).resolve()
+    except (ValueError,OSError,RuntimeError):
+        return None
+    if candidate.suffix.lower() not in PUBLIC_IMAGE_SUFFIXES:
+        return None
+    for folder in PUBLIC_IMAGE_DIRECTORIES:
+        try:
+            asset_root=(ROOT/'assets'/folder).resolve()
+            asset_root.relative_to(ROOT.resolve())
+            candidate.relative_to(asset_root)
+        except (ValueError,OSError,RuntimeError):
+            continue
+        if candidate.is_file():
+            return candidate
+    return None
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version='Folio/1.0'
+    server_version='EcoPak/1.0'
     def send(self,status,body,kind='application/json'):
         content=json.dumps(body,allow_nan=False).encode() if kind=='application/json' else (body.encode() if isinstance(body,str) else body)
         self.send_response(status);self.send_header('Content-Type',kind+'; charset=utf-8' if kind.startswith('text/') or kind=='application/json' else kind)
         self.send_header('Content-Length',str(len(content)));self.send_header('X-Content-Type-Options','nosniff');self.send_header('Cache-Control','no-store');self.end_headers();self.wfile.write(content)
     def do_GET(self):
         path=urlsplit(self.path).path
-        if path=='/api/v1/health': return self.send(200,dict(status='ok',service='Folio Packaging API',version='1.0',mode='catalogue-and-mockup-preview'))
+        if path=='/api/v1/health': return self.send(200,dict(status='ok',service='PanniPack Catalogue and Mockup API',version='1.0',mode='catalogue-and-mockup-preview'))
+        if path=='/api/v1/enquiries/config':
+            setting=email_configuration()
+            return self.send(200,dict(enabled=True,storage='sqlite',emailConfigured=bool(setting['provider']),emailActivated=setting['activated']))
         if path=='/catalog.js': return self.send(200,'window.FOLIO_TEMPLATES='+json.dumps(TEMPLATES)+';window.FOLIO_MODELS='+json.dumps({t['id']:manifest(t['id'],t['dimensions_mm']) for t in TEMPLATES})+';', 'text/javascript')
         if path=='/api/v1/templates': return self.send(200,dict(templates=TEMPLATES,limits_mm=LIMITS,materials=['kraft','sbs','rigid'],finishes=['matte','gloss','soft']))
-        if path=='/api/v1/products': return self.send(200,dict(currency='PKR',products=load_catalogue()))
-        allowed={'/shop.css':'shop.css','/shop.js':'shop.js','/shop-art.js':'shop-art.js','/shop-data.js':'shop-data.js','/shop-catalogue.json':'shop-catalogue.json','/favicon.svg':'favicon.svg','/robots.txt':'robots.txt','/garment-model.js':'garment-model.js','/story.css':'story.css','/story.js':'story.js','/story-scene.js':'story-scene.js','/hoodie':'hoodie.html','/hoodie.js':'hoodie.js','/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/editor.js':'editor.js','/workspace.js':'workspace.js','/api-client.js':'api-client.js','/studio.js':'studio.js','/folding-engine.js':'folding-engine.js','/product.js':'product.js','/embed-demo':'embed-demo.html','/api-docs':'api-docs.html','/vendor/three.min.js':'vendor/three.min.js'}
-        if path not in allowed:return self.send(404,dict(error='not_found',message='Route not found.'))
-        f=ROOT/allowed[path]
+        if path=='/api/v1/products':
+            products=load_catalogue()
+            dates=[o.get('source',{}).get('date','') for p in products for o in p.get('options',[])]
+            return self.send(200,dict(currency='PKR',products=products,snapshotDate=max(dates,default=''),
+                                      priceMode='imported-catalogue-snapshot',checkoutConnected=False))
+        allowed={'/pannipack-logo.svg':'pannipack-logo.svg','/catalogue-models.json':'catalogue-models.json','/product-geometry.js':'product-geometry.js','/light-theme.css':'light-theme.css','/product-mockups.js':'product-mockups.js','/catalogue-mockups.json':'catalogue-mockups.json','/product-mockups.css':'product-mockups.css','/launch.js':'launch.js','/robots.txt':'robots.txt','/fold-study.js':'fold-study.js','/shop-photos.css':'shop-photos.css','/ecopak.css':'ecopak.css','/shop.css':'shop.css','/shop.js':'shop.js','/shop-art.js':'shop-art.js','/shop-data.js':'shop-data.js','/shop-catalogue.json':'shop-catalogue.json','/favicon.svg':'favicon.svg','/robots.txt':'robots.txt','/garment-model.js':'garment-model.js','/hoodie':'hoodie.html','/hoodie.js':'hoodie.js','/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/editor.js':'editor.js','/workspace.js':'workspace.js','/api-client.js':'api-client.js','/studio.js':'studio.js','/folding-engine.js':'folding-engine.js','/product.js':'product.js','/embed-demo':'embed-demo.html','/api-docs':'api-docs.html','/vendor/three.min.js':'vendor/three.min.js'}
+        f=public_image(path) if path.startswith('/assets/') else (ROOT/allowed[path] if path in allowed else None)
+        if f is None:return self.send(404,dict(error='not_found',message='Route not found.'))
         if not f.is_file():return self.send(404,dict(error='not_found',message='Route not found.'))
-        kinds={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.txt':'text/plain'}
+        kinds={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml','.txt':'text/plain','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.gif':'image/gif','.avif':'image/avif'}
         if f.suffix=='.json': return self.send(200,json.loads(f.read_text(encoding='utf-8')))
         return self.send(200,f.read_bytes(),kinds.get(f.suffix,'application/octet-stream'))
     def do_POST(self):
         path=urlsplit(self.path).path
-        if path not in ['/api/v1/configurations/validate','/api/v1/estimates','/api/v1/catalogue/estimate','/api/v1/dielines','/api/v1/sizing/recommend','/api/v1/models','/api/v1/models/pose','/api/v1/recommendations']:return self.send(404,dict(error='not_found',message='Route not found.'))
+        if path not in ['/api/v1/enquiries','/api/v1/configurations/validate','/api/v1/estimates','/api/v1/catalogue/estimate','/api/v1/dielines','/api/v1/sizing/recommend','/api/v1/models','/api/v1/models/pose','/api/v1/recommendations']:return self.send(404,dict(error='not_found',message='Route not found.'))
         # The API is same-origin. No cross-site browser submissions or CORS access.
         origin=self.headers.get('Origin')
-        if not same_origin(origin,self.headers.get('Host')):return self.send(403,dict(error='origin_not_allowed',message='Use the Folio website on the same domain.'))
+        if not same_origin(origin,self.headers.get('Host')):return self.send(403,dict(error='origin_not_allowed',message='Use the PanniPack website on the same domain.'))
         if self.headers.get('Content-Type','').split(';')[0]!='application/json':return self.send(415,dict(error='content_type',message='Send application/json.'))
         try:
             size=int(self.headers.get('Content-Length',0))
@@ -195,6 +250,10 @@ class Handler(BaseHTTPRequestHandler):
             self.connection.settimeout(10)
             data=json.loads(self.rfile.read(size))
             if not isinstance(data,dict):raise Invalid('Request body must be an object.')
+            if path.endswith('/enquiries'):
+                client=self.client_address[0]
+                if os.environ.get('TRUST_PROXY','').lower()=='true':client=self.headers.get('X-Real-IP',client)
+                return self.send(202,submit_enquiry(data,client,lambda payload:catalogue_estimate(payload,allow_unavailable=True)))
             if path.endswith('/catalogue/estimate'):return self.send(200,catalogue_estimate(data))
             if path.endswith('/recommendations'):
                 description=data.get('description','')
@@ -213,11 +272,13 @@ class Handler(BaseHTTPRequestHandler):
             if path.endswith('/validate'):return self.send(200,c)
             if path.endswith('/estimates'):return self.send(200,estimate(c))
             return self.send(200,dieline(c),'image/svg+xml')
+        except EnquiryRateLimited as e:return self.send(429,dict(error='rate_limited',message=str(e)))
         except (Invalid,ValueError,UnicodeDecodeError) as e:return self.send(422,dict(error='validation_error',message=str(e)))
+        except (OSError,sqlite3.Error):return self.send(503,dict(error='service_unavailable',message='The enquiry service is temporarily unavailable. Please try again.'))
         except TimeoutError:return self.send(408,dict(error='timeout',message='Request timed out.'))
 
 if __name__=='__main__':
     host,port=server_address()
     display_host='localhost' if host in ('0.0.0.0','127.0.0.1','::') else host
-    print(f'Folio Studio: http://{display_host}:{port} | API docs: http://{display_host}:{port}/api-docs',flush=True)
+    print(f'PanniPack: http://{display_host}:{port} | API docs: http://{display_host}:{port}/api-docs',flush=True)
     ThreadingHTTPServer((host,port),Handler).serve_forever()

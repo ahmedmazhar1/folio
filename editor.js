@@ -3,11 +3,16 @@ const $=id=>document.getElementById(id);
 const COLORS=['#111612','#FFFFFF','#E7FF73','#9CDBB0','#B98B5E','#44664D'];
 const ICONS={models:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/>',artwork:'<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/>',material:'<path d="M4 8l8-4 8 4-8 4z"/><path d="M4 12l8 4 8-4M4 16l8 4 8-4"/>',export:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'};
 const NAMES={models:'Models',artwork:'Artwork',material:'Material',export:'Dieline'};
-const PRESETS=FOLIO_TEMPLATES.map(t=>({id:t.id,n:t.name,board:t.board||'Studio presets',d:['L','W','H'].map(k=>t.dimensions_mm[k])}));
+const PRESETS=FOLIO_TEMPLATES.map(t=>({id:t.id,n:t.name,board:t.board||'Studio presets',defaults:t.defaults,referenceNote:t.reference_note,materialLabel:t.material_label,d:['L','W','H'].map(k=>t.dimensions_mm[k])}));
+function applyPreset(p){
+ S.template=p.id;[S.L,S.W,S.H]=p.d;
+ if(p.defaults){S.mat=p.defaults.material;S.color=p.defaults.color;S.u=p.defaults.unit;}
+ if(p.id==='board-window-cake'&&S.E.length===1&&S.E[0].text==='YOUR BRAND'){S.E[0].y=.94;S.E[0].sz=.35;}
+}
 let dielineMode=false, lastCustomModel=null, pendingModelKey='', modelTimer;
 const S={template:'mailer',L:220,W:150,H:60,color:'#FFFFFF',mat:'kraft',fin:'matte',qty:500,mode:'wrap',pat:.25,img:null,u:'mm',open:false,sel:null,E:[{id:1,face:'lid',text:'YOUR BRAND',x:.5,y:.5,sz:.9,color:''}]};
 let nid=2,caretOn=true,dirty=false;
-const KEYS=['foldProgress','openAmount','open','template','L','W','H','color','mat','fin','qty','mode','pat','img'];
+const KEYS=['foldProgress','openAmount','open','template','L','W','H','color','mat','fin','qty','mode','pat','img','foldStudy'];
 let hist=[],hi=-1;
 const snap=()=>{const o=Object.fromEntries(KEYS.map(k=>[k,S[k]]));o.E=S.E.map(e=>({...e}));return o};
 function commit(){hist=hist.slice(0,hi+1);hist.push(snap());hi++;ub()}
@@ -20,7 +25,7 @@ const rail=$('rail');
 Object.keys(NAMES).forEach((k,i)=>{const b=document.createElement('button');b.setAttribute('role','tab');b.dataset.p=k;b.innerHTML='<svg viewBox="0 0 24 24">'+ICONS[k]+'</svg>'+NAMES[k];b.onclick=()=>showP(k);rail.appendChild(b)});
 function showP(k){rail.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.p===k));document.querySelectorAll('.pane').forEach(p=>p.hidden=p.dataset.p!==k)}
 showP('models');
-PRESETS.forEach((p,i)=>{const b=document.createElement('button');b.className='card';b.innerHTML='<b>'+p.n+'</b><small>'+p.d.join(' × ')+' mm</small>';b.onclick=()=>{S.template=p.id;[S.L,S.W,S.H]=p.d;refresh();commit()};b.dataset.i=i;$('models').appendChild(b)});
+PRESETS.forEach((p,i)=>{const b=document.createElement('button');b.className='card';b.innerHTML='<b>'+p.n+'</b><small>'+p.d.join(' × ')+' mm</small>';b.onclick=()=>{applyPreset(p);refresh();commit()};b.dataset.i=i;$('models').appendChild(b)});
 COLORS.forEach(c=>{const b=document.createElement('button');b.style.background=c;b.dataset.c=c;b.setAttribute('aria-label','Colour '+c);b.onclick=()=>{S.color=c;refresh();commit()};$('sw').appendChild(b)});
 
 /* controls */
@@ -69,6 +74,7 @@ function paint(f){
  }
  S.E.filter(e=>e.face===f).forEach(e=>{if(e.type==='img'){const L=LIB.find(l=>l.id===e.lib);if(!L)return;const w=e.sz*cw*.3,h=w*L.img.height/L.img.width;x.drawImage(L.img,e.x*cw-w/2,e.y*ch-h/2,w,h);e.bw=w;e.bh=h;if(e.id===S.sel){x.save();x.strokeStyle='#397f52';x.lineWidth=3;x.setLineDash([10,7]);x.strokeRect(e.x*cw-w/2-6,e.y*ch-h/2-6,w+12,h+12);x.setLineDash([]);x.fillStyle='#E7FF73';x.fillRect(e.x*cw+w/2-9,e.y*ch+h/2-9,18,18);x.restore()}return}const fs=e.sz*cw*.1;x.font='700 '+fs+'px "Bricolage Grotesque",sans-serif';x.textAlign='center';x.textBaseline='middle';const col=e.color||(lum(S.color)>150?'#0F2133':'#F7F7F5'),tw=x.measureText(e.text).width;x.fillStyle=col;e.bw=Math.max(tw,fs);e.bh=fs*1.3;x.fillText(e.text,e.x*cw,e.y*ch);
   if(e.id===S.sel){x.save();x.strokeStyle='#397f52';x.lineWidth=3;x.setLineDash([10,7]);x.strokeRect(e.x*cw-e.bw/2-10,e.y*ch-e.bh/2,e.bw+20,e.bh);x.setLineDash([]);x.fillStyle='#E7FF73';x.fillRect(e.x*cw+e.bw/2-9,e.y*ch+e.bh/2-9,18,18);if(caretOn){x.fillStyle=col;x.fillRect(e.x*cw+tw/2+4,e.y*ch-fs*.55,3,fs*1.1)}x.restore()}});
+ if(F.holes?.length){x.save();x.globalCompositeOperation='destination-out';for(const hole of F.holes){x.beginPath();hole.forEach(([px,py],i)=>{const hx=((px-F.panelCenter[0])/F.panelWidth+.5)*cw,hy=(1-((py-F.panelCenter[1])/F.panelHeight+.5))*ch;i?x.lineTo(hx,hy):x.moveTo(hx,hy)});x.closePath();x.fill()}x.restore();}
  F.tex.needsUpdate=true;
 }
 const paintAll=()=>Object.keys(faces).forEach(paint);
@@ -81,7 +87,7 @@ function build(){
  folding=FolioFolding.mount(THREE,model,{materials:p=>{
   const inner=new THREE.MeshStandardMaterial({color:S.mat==='kraft'?0xd1b68a:0xf5f0eb,roughness:.93});
   const outer=new THREE.MeshStandardMaterial({color:S.color,roughness:S.fin==='gloss'?.27:.8});
-  if(p.face){const texture=mkFace(p.face,p.width,p.height);const printed=new THREE.MeshStandardMaterial({map:texture,roughness:S.fin==='gloss'?.27:.8});return[edge,edge,edge,edge,p.face==='inside'?printed:inner,p.face==='inside'?outer:printed]}
+  if(p.face){const texture=mkFace(p.face,p.width,p.height);Object.assign(faces[p.face],{holes:p.holes||[],panelCenter:p.center,panelWidth:p.width,panelHeight:p.height});const printed=new THREE.MeshStandardMaterial({map:texture,roughness:S.fin==='gloss'?.27:.8});return[edge,edge,edge,edge,p.face==='inside'?printed:inner,p.face==='inside'?outer:printed]}
   return[edge,edge,edge,edge,inner,outer];
  }});
  folding.setGuides(dielineMode);folding.group.position.y=-S.H*.005;box.add(folding.group);folding.setProgress(S.foldProgress||0);
@@ -165,7 +171,7 @@ const still=matchMedia('(prefers-reduced-motion:reduce)').matches;let o=0;auto=f
     group.rotation.set(.38+(Math.PI/2-Math.atan(.18)-.38)*o,-.62*(1-o),0);
  } else if(!drag&&Math.abs(tx-group.rotation.x)>.002)group.rotation.x+=(tx-group.rotation.x)*.07;
  if(auto&&!still&&!S.open)group.rotation.y+=.004;
- if(!folding){requestAnimationFrame(loop);return}group.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(folding.group),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());const fov=cam.fov*Math.PI/360;const fit=Math.max(size.y,size.x/cam.aspect)*.5/Math.tan(fov)+size.z*.5;const d=Math.max(3,fit*1.25)*zoom;cam.position.set(center.x,center.y+d*.18,center.z+d);cam.lookAt(center);renderer.render(scene,cam);requestAnimationFrame(loop)})();
+ if(!folding){requestAnimationFrame(loop);return}group.updateMatrixWorld(true);const bounds=new THREE.Box3().setFromObject(folding.group),center=bounds.getCenter(new THREE.Vector3()),size=bounds.getSize(new THREE.Vector3());const fov=cam.fov*Math.PI/360;const fit=Math.max(size.y,size.x/cam.aspect)*.5/Math.tan(fov)+size.z*.5;const d=Math.max(3,fit*((dielineMode||S.foldStudy)?1.45:1.25))*zoom;cam.position.set(center.x,center.y+d*.18,center.z+d);cam.lookAt(center);renderer.render(scene,cam);requestAnimationFrame(loop)})();
 
 function download(name,data,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 let saveDie;

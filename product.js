@@ -1,12 +1,12 @@
 // Product experience: a small set of clear, working actions.
-document.querySelector('.brand-sub').textContent='COLLECTION & STUDIO';document.querySelector('nav [data-view=editor]').textContent='Packaging studio';document.querySelector('.local-tag').textContent='Saved on this device';
+document.querySelector('.brand-sub').textContent='PACKAGING & STUDIO';document.querySelector('.local-tag').textContent='Saved on this device';
 document.querySelector('.studio-heading h2').textContent='Your design goes here';document.querySelector('.studio-heading p').textContent='Pick a side, upload your artwork, and move it into place.';
 document.querySelector('.studio-steps').hidden=true;document.querySelector('.projectbar .eyebrow').textContent='MAKE SOMETHING WORTH OPENING';$('topQuote').textContent='Export mockup';$('topQuote').onclick=()=>$('exportMockup').click();
 const modelPane=document.querySelector('.pane[data-p="models"]');modelPane.querySelector('h2').textContent='Start with a box';modelPane.querySelector('p').textContent='Choose a shape. You can change its size and finish later.';
 const helper=document.createElement('button');helper.className='recommend-button';helper.innerHTML='<span>Not sure which box?</span><small>Tell us what’s going inside ↗</small>';modelPane.prepend(helper);
 const helpDialog=document.createElement('dialog');helpDialog.id='recommendDialog';helpDialog.innerHTML='<form id="recommendForm"><div class="dialoghead"><span class="eyebrow">LET’S FIND A STARTING POINT</span><button class="close" type="button" aria-label="Close box finder">×</button></div><h1>What are you packing?</h1><p>A little detail helps. Tell us about the product, how many there are, and whether you’ll be shipping it.</p><label for="productDescription">Your product</label><textarea id="productDescription" minlength="10" maxlength="2000" required rows="4" placeholder="A glass candle in a jar, sent as a gift. It needs room for a protective insert."></textarea><button class="btn pri" type="submit">Find a box</button><div id="recommendResult" role="status"></div><p class="engine-note">This version uses product rules, not AI. Always confirm dimensions and protection with a physical sample.</p></form>';
 document.body.append(helpDialog);helper.onclick=()=>helpDialog.showModal();helpDialog.querySelector('.close').onclick=()=>helpDialog.close();
-$('recommendForm').onsubmit=async ev=>{ev.preventDefault();$('recommendResult').textContent='Finding a starting point…';try{const r=await folioApi('recommendations',{description:$('productDescription').value});$('recommendResult').innerHTML='';const p=PRESETS.find(p=>p.id===r.template_id);const title=document.createElement('h2');title.textContent=p?.n||'Mailer box';const reason=document.createElement('p');reason.textContent=r.reason;const question=document.createElement('p');question.textContent=r.questions.join(' ');const button=document.createElement('button');button.type='button';button.className='btn pri';button.textContent='Try this box';button.onclick=()=>{if(p){S.template=p.id;[S.L,S.W,S.H]=p.d;refresh();commit()}helpDialog.close();view('editor')};$('recommendResult').append(title,reason,question,button)}catch(e){$('recommendResult').textContent=e.message}};
+$('recommendForm').onsubmit=async ev=>{ev.preventDefault();$('recommendResult').textContent='Finding a starting point…';try{const r=await folioApi('recommendations',{description:$('productDescription').value});$('recommendResult').innerHTML='';const p=PRESETS.find(p=>p.id===r.template_id);const title=document.createElement('h2');title.textContent=p?.n||'Mailer box';const reason=document.createElement('p');reason.textContent=r.reason;const question=document.createElement('p');question.textContent=r.questions.join(' ');const button=document.createElement('button');button.type='button';button.className='btn pri';button.textContent='Try this box';button.onclick=()=>{if(p){applyPreset(p);refresh();commit()}helpDialog.close();view('editor')};$('recommendResult').append(title,reason,question,button)}catch(e){$('recommendResult').textContent=e.message}};
 // Keep the useful editing controls together; advanced cover modes stay under Artwork.
 const finishRow=document.createElement('div');finishRow.className='quick-finishes';finishRow.innerHTML='<span class="eyebrow">PAPER COLOR</span>';const colorGroup=document.createElement('div');colorGroup.className='sw';[['White','#FFFFFF'],['Black','#111612'],['Yellow','#E7FF73'],['Green','#9CDBB0'],['Kraft','#B98B5E']].forEach(([name,color])=>{const b=document.createElement('button');b.style.background=color;b.setAttribute('aria-label',name+' box');b.title=name;b.onclick=()=>{S.color=color;S.mat=color==='#B98B5E'?'kraft':'sbs';refresh();commit()};colorGroup.append(b)});finishRow.append(colorGroup);modelPane.append(finishRow);
 const camera=document.createElement('div');camera.className='view-presets';[['Front',0,0],['Three-quarter',.35,-.55],['Top',1.2,0]].forEach(([label,x,y])=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>{tx=x;group.rotation.set(x,y,0);zoom=1;auto=false};camera.append(b)});document.querySelector('.stage').append(camera);
@@ -31,12 +31,12 @@ for(const board of [...new Set(PRESETS.map(p=>p.board))]){
 }
 function syncDieline(){
   dieSelector.value=S.template;
-  $('dieDims').textContent=[S.L,S.W,S.H].join(' × ')+' mm';
+  const colors=FOLIO_MODELS[S.template]?.line_colors||{cut:'#cd4158',crease:'#188157'},key=document.querySelector('.die-key');key.style.setProperty('--die-cut',colors.cut);key.style.setProperty('--die-crease',colors.crease);
+  $('dieDims').textContent=S.u==='in'?[S.L,S.W,S.H].map(v=>(v/25.4).toFixed(2)).join(' × ')+' in ('+[S.L,S.W,S.H].join(' × ')+' mm)':[S.L,S.W,S.H].join(' × ')+' mm';
 }
 dieSelector.onchange=()=>{
   const preset=PRESETS.find(p=>p.id===dieSelector.value);
-  S.template=preset.id;
-  [S.L,S.W,S.H]=preset.d;
+  applyPreset(preset);
   setOpening(0);
   refresh();
   commit();
@@ -94,12 +94,14 @@ if(requested.get('tool')==='dieline'){
   }
 }
 
+if(requested.get('tool')!=='dieline'&&PRESETS.some(p=>p.id===requested.get('model')))startModel(requested.get('model'),false);
+
 // Category artwork is an original illustration. Dieline thumbnails come from the model itself.
 const productArt={
-  mailer:'<path fill="#d5b9b2" d="M18 82l76 18 49-30-71-14z"/><path fill="#162e50" d="M18 82l76 18v22l-76-19z"/><path fill="#415778" d="M94 100l49-30v21l-49 31z"/><path fill="#efb8cb" d="M72 56l-9-44 70 9 10 49z"/><path fill="#ffdee8" d="M63 12l4-6 67 9-1 6z"/><path fill="none" stroke="#bd8c9f" d="M74 56l65 12"/><text x="79" y="38" fill="#673d51" font-size="12" transform="rotate(8 79 38)">folio.</text>',
-  gift:'<path fill="#c18f9e" d="M32 60l66 16v48l-66-17z"/><path fill="#d7a6b8" d="M98 76l40-23v47l-40 24z"/><path fill="#ecc0d0" d="M28 56l69 17v12L28 68z"/><path fill="#e2b0c1" d="M97 73l45-25v12L97 85z"/><path fill="#f9dce7" d="M28 56l42-22 72 14-45 25z"/><path fill="#213856" d="M58 40l12-6 72 14-12 7z"/><path fill="#243b59" d="M130 55l12-7v12l-12 7z"/><text x="44" y="88" fill="#6a364e" transform="rotate(14 44 88)" font-size="14">folio.</text>',
-  bag:'<path d="M60 59V33q0-34 23-26 11 4 12 23v23M77 54V29q1-28 19-21 11 4 12 22v21" fill="none" stroke="#aa805b" stroke-width="4"/><path d="M38 44l69 9-2 73-71-13z" fill="#dbb99a"/><path d="M107 53l21-10 5 71-28 12z" fill="#ba9377"/><path d="M38 44l24-9 66 8-21 10z" fill="#96745f"/><path d="M116 48l2 57 15 9" fill="none" stroke="#a67e62"/><text x="47" y="87" font-size="23" fill="#493e3c" transform="rotate(9 47 87)">folio.</text>',
-  hoodie:'<path d="M59 39q0-28 18-34 21-8 33 14l5 19 18 10 20 63-19 8-16-37 1 42q-37 9-70-2l2-42-18 39-18-7 24-65z" fill="#233855"/><path d="M59 39q4-28 19-31 14-4 27 12l9 18q-21 11-32 9z" fill="#344b69"/><path d="M66 34q18-23 34 0l-15 12z" fill="#14243b"/><path d="M62 104l8-12 28 1 9 13-2 9-43-1z" fill="#304663"/><path d="M17 107l17 6-3 9-17-6zm117 6l17-7 3 9-17 6z" fill="#172c45"/><path d="M77 44l-4 20m15-20 2 22" stroke="#65728a" fill="none"/><text x="64" y="78" font-size="16" fill="#f6d0df">folio.</text>'
+  mailer:'<path fill="#d5b9b2" d="M18 82l76 18 49-30-71-14z"/><path fill="#162e50" d="M18 82l76 18v22l-76-19z"/><path fill="#415778" d="M94 100l49-30v21l-49 31z"/><path fill="#efb8cb" d="M72 56l-9-44 70 9 10 49z"/><path fill="#ffdee8" d="M63 12l4-6 67 9-1 6z"/><path fill="none" stroke="#bd8c9f" d="M74 56l65 12"/><text x="79" y="38" fill="#673d51" font-size="12" transform="rotate(8 79 38)">EcoPak</text>',
+  gift:'<path fill="#c18f9e" d="M32 60l66 16v48l-66-17z"/><path fill="#d7a6b8" d="M98 76l40-23v47l-40 24z"/><path fill="#ecc0d0" d="M28 56l69 17v12L28 68z"/><path fill="#e2b0c1" d="M97 73l45-25v12L97 85z"/><path fill="#f9dce7" d="M28 56l42-22 72 14-45 25z"/><path fill="#213856" d="M58 40l12-6 72 14-12 7z"/><path fill="#243b59" d="M130 55l12-7v12l-12 7z"/><text x="44" y="88" fill="#6a364e" transform="rotate(14 44 88)" font-size="14">EcoPak</text>',
+  bag:'<path d="M60 59V33q0-34 23-26 11 4 12 23v23M77 54V29q1-28 19-21 11 4 12 22v21" fill="none" stroke="#aa805b" stroke-width="4"/><path d="M38 44l69 9-2 73-71-13z" fill="#dbb99a"/><path d="M107 53l21-10 5 71-28 12z" fill="#ba9377"/><path d="M38 44l24-9 66 8-21 10z" fill="#96745f"/><path d="M116 48l2 57 15 9" fill="none" stroke="#a67e62"/><text x="47" y="87" font-size="23" fill="#493e3c" transform="rotate(9 47 87)">EcoPak</text>',
+  hoodie:'<path d="M59 39q0-28 18-34 21-8 33 14l5 19 18 10 20 63-19 8-16-37 1 42q-37 9-70-2l2-42-18 39-18-7 24-65z" fill="#233855"/><path d="M59 39q4-28 19-31 14-4 27 12l9 18q-21 11-32 9z" fill="#344b69"/><path d="M66 34q18-23 34 0l-15 12z" fill="#14243b"/><path d="M62 104l8-12 28 1 9 13-2 9-43-1z" fill="#304663"/><path d="M17 107l17 6-3 9-17-6zm117 6l17-7 3 9-17 6z" fill="#172c45"/><path d="M77 44l-4 20m15-20 2 22" stroke="#65728a" fill="none"/><text x="64" y="78" font-size="16" fill="#f6d0df">EcoPak</text>'
 };
 // Keep category illustrations in the same palette as the studio.
 const galleryColors = {
@@ -117,8 +119,8 @@ const galleryColors = {
 for (const name of Object.keys(productArt)) {
   productArt[name] = productArt[name].replace(/#[a-f0-9]{6}/gi, color => galleryColors[color.toLowerCase()] || color);
 }
-productArt['tshirt-short']='<path d="M56 24L70 17Q80 26 92 17L106 24L137 43L121 68L107 61L109 122Q81 130 53 122L55 61L40 68L24 43Z" fill="#b9d59f"/><path d="M70 17Q80 44 92 17L98 21Q82 52 64 21Z" fill="#698d63"/><path d="M56 25L54 58M106 25L108 58M54 116Q81 123 108 116M29 45L43 65M132 45L119 65" fill="none" stroke="#80a675"/><text x="65" y="74" fill="#253e2b" font-size="15">folio.</text>';
-productArt['tshirt-long']='<path d="M57 25L70 17Q80 26 92 17L105 25L121 40L141 109L125 116L107 68L109 122Q81 130 53 122L55 68L37 116L21 109L41 40Z" fill="#63896b"/><path d="M70 17Q80 44 92 17L98 21Q82 52 64 21Z" fill="#355c3e"/><path d="M21 109L37 116L34 123L19 116ZM125 116L141 109L144 116L128 123Z" fill="#355c3e"/><path d="M54 117Q81 123 108 117" fill="none" stroke="#355c3e"/><text x="65" y="74" fill="#e7ff73" font-size="15">folio.</text>';
+productArt['tshirt-short']='<path d="M56 24L70 17Q80 26 92 17L106 24L137 43L121 68L107 61L109 122Q81 130 53 122L55 61L40 68L24 43Z" fill="#b9d59f"/><path d="M70 17Q80 44 92 17L98 21Q82 52 64 21Z" fill="#698d63"/><path d="M56 25L54 58M106 25L108 58M54 116Q81 123 108 116M29 45L43 65M132 45L119 65" fill="none" stroke="#80a675"/><text x="65" y="74" fill="#253e2b" font-size="15">EcoPak</text>';
+productArt['tshirt-long']='<path d="M57 25L70 17Q80 26 92 17L105 25L121 40L141 109L125 116L107 68L109 122Q81 130 53 122L55 68L37 116L21 109L41 40Z" fill="#63896b"/><path d="M70 17Q80 44 92 17L98 21Q82 52 64 21Z" fill="#355c3e"/><path d="M21 109L37 116L34 123L19 116ZM125 116L141 109L144 116L128 123Z" fill="#355c3e"/><path d="M54 117Q81 123 108 117" fill="none" stroke="#355c3e"/><text x="65" y="74" fill="#e7ff73" font-size="15">EcoPak</text>';
 
 let requestedGarment = null;
 const apparelFrame = $('hoodieEditor');
@@ -147,14 +149,13 @@ function homeCard(container,name,caption,art,open){
 function startModel(id,drawing){
   const preset=PRESETS.find(p=>p.id===id);
   view('editor');showP(drawing?'export':'models');
-  S.template=id;[S.L,S.W,S.H]=preset.d;
+  applyPreset(preset);
   setOpening(drawing?0:100);refresh();commit();
   if(drawing)syncDieline();
 }
 for(const [title,caption,art,id] of [
   ['Mailer boxes','Hinged lid','mailer','mailer'],['Gift boxes','Deep gift box','gift','deep-gift'],
-  ['Paper bags','Gusseted sides','bag','board-paper-bag'],['Hoodies','Pullover hoodie','hoodie',null],
-  ['Half Sleeved Shirts','Classic crew neck','tshirt-short',null],['Full Sleeved Shirts','Classic crew neck','tshirt-long',null]]){
+  ['Paper bags','Gusseted sides','bag','board-paper-bag'],['Window cake box','8.5 × 8.5 × 4 in · All flaps','gift','board-window-cake'],['Self-locking brownie box','10 × 6 × 3 in · Locking tabs','mailer','board-self-locking-tuck']]){
   homeCard($('mockupCards'),title,caption,'<svg viewBox="0 0 160 138">'+productArt[art]+'</svg>',()=>id?startModel(id,false):openApparel(art));
 }
 for(const [title,id] of [['Tuck end','board-tuck-end'],['Auto bottom','board-auto-bottom'],['Roll end','corr-roll-end'],['Paper bag','board-paper-bag'],['Simple tray','board-simple-tray'],['Frame tray','board-frame-tray'],['Flap box','corr-flap-box'],['Wing closure','corr-roll-end-wing']]){
@@ -162,3 +163,6 @@ for(const [title,id] of [['Tuck end','board-tuck-end'],['Auto bottom','board-aut
   homeCard($('netCards'),title,PRESETS[index].board,'<img alt="" src="'+previews[index]+'">',()=>startModel(id,true));
 }
 $('allStructures').onclick=()=>view('templates');
+
+const referenceNote=document.createElement('p');referenceNote.id='modelReferenceNote';referenceNote.className='model-reference-note';modelPane.querySelector('h2').after(referenceNote);
+const referenceRefresh=refresh;refresh=function(){referenceRefresh();const p=PRESETS.find(p=>p.id===S.template);modelPane.querySelector('h2').textContent=p?.referenceNote?p.n.split(' · ')[0]:'Start with a box';referenceNote.hidden=!p?.referenceNote;referenceNote.textContent=p?.referenceNote?(p.materialLabel+'. '+p.referenceNote):'';};refresh();

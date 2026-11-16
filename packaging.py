@@ -3,6 +3,7 @@ import math,re
 
 def _outline(panel):
     """Ordered perimeter in the panel's hinge-local XY plane."""
+    if 'outline_points' in panel:return panel['outline_points']
     w,h=panel['width'],panel['height']
     cx,cy,_=panel['center']
     shape=panel['shape']
@@ -56,9 +57,106 @@ def _linework(panels):
                 if start>cursor: cuts.append([point(cursor),point(start)])
                 cursor=max(cursor,end)
             if cursor<1: cuts.append([point(cursor),b])
+        for hole in p.get('holes',[]):
+            cuts.extend([[a,b] for a,b in zip(hole,hole[1:]+hole[:1])])
+        cuts.extend(p.get('slits',[]))
+
+
+def _rounded_rectangle(x0,y0,x1,y1,r,steps=7):
+    r=min(r,(x1-x0)/2,(y1-y0)/2)
+    points=[]
+    for cx,cy,start in [(x1-r,y1-r,0),(x0+r,y1-r,math.pi/2),(x0+r,y0+r,math.pi),(x1-r,y0+r,3*math.pi/2)]:
+        for i in range(steps+1):
+            angle=start+math.pi/2*i/steps
+            points.append([cx+r*math.cos(angle),cy+r*math.sin(angle)])
+    return points
+
+
+def _reference_box(kind,d):
+    """Parametric visual reconstruction of the two supplied screenshot nets.
+
+    Overall dimensions are supplied; small tab, slot and window dimensions are
+    proportional estimates, not measured manufacturing specifications.
+    """
+    l,w,h=(d[k] for k in ('L','W','H'))
+    window=kind=='board-window-cake'
+    thickness=.0197*25.4 if window else .013*25.4
+    panels=[]
+    turn=math.pi/2
+    def add(id,parent,width,height,hinge,center,axis,angle,phase,face=None,outline=None,**extra):
+        p=dict(id=id,parent=parent,width=width,height=height,hinge=[*hinge,0],center=[*center,0],axis=axis,closed_angle=angle,phase=phase,face=face,shape='rect',**extra)
+        if outline is not None:p['outline_points']=outline
+        panels.append(p)
+        return p
+    add('base',None,l,w,(0,0),(0,0),'x',0,[0,1],'inside')
+    # Free-edge thumb relief on the cake front; two small reliefs leave the
+    # brownie's central rounded locking tongue visible in the flat layout.
+    r=min(l*.065,h*.14)
+    front=[[-l/2,0],[l/2,0],[l/2,-h],[r,-h]]
+    if window:
+        front.extend([[r*math.cos(t),-h+r*math.sin(t)] for t in [math.pi*i/12 for i in range(1,13)]])
+    else:
+        r=min(l*.10,h*.34)
+        front=[[-l/2,0],[l/2,0],[l/2,-h],[r,-h],[r,-h+r]]
+        front.extend([[r*math.cos(t),-h+r-r*math.sin(t)] for t in [math.pi*i/16 for i in range(1,17)]])
+        front.append([-r,-h])
+    front.append([-l/2,-h])
+    add('front','base',l,h,(0,-w/2),(0,-h/2),'x',-turn,[.47,.70],None if window else 'front',front)
+    add('back','base',l,h,(0,w/2),(0,h/2),'x',turn,[.47,.70],'back')
+    for side,sign in [('left',-1),('right',1)]:
+        wall=add(side,'base',h,w,(sign*l/2,0),(sign*h/2,0),'y',-sign*turn,[.72,.97],side)
+        if not window:
+            # Thin real cut-outs represent the visible side locking slots.
+            x=sign*h*.48;slot_w=max(thickness*1.6,.5)
+            wall['holes']=[_rounded_rectangle(x-slot_w/2,-w*.27,x+slot_w/2,w*.27,slot_w/2,3)]
+        if window:
+            # One full return panel per side, directly hinged as in the source.
+            liner=add(side+'-liner',side,h,w,(sign*h,0),(sign*h/2,0),'y',-sign*math.pi,[.30,.45],fold_offset=[0,0,thickness*2.2])
+            # Two very small locating lugs on the liner's free edge.
+            edge=sign*h;notch=thickness*1.5
+            liner['outline_points']=[[0,-w/2],[edge,-w/2],[edge,-w*.30],[edge+sign*notch,-w*.30],[edge+sign*notch,-w*.10],[edge,-w*.10],[edge,w*.10],[edge+sign*notch,w*.10],[edge+sign*notch,w*.30],[edge,w*.30],[edge,w/2],[0,w/2]]
+    for end,edge in [('front',-1),('back',1)]:
+        for side,sign in [('left',-1),('right',1)]:
+            if window:
+                # Rounded hook with a deep relief cut; all four are separate
+                # articulated tabs, rather than painted outlines on the walls.
+                shape=[(0,0),(1.36,0),(1.44,.025),(1.49,.08),(1.50,.14),(1.50,.78),(1.48,.87),(1.43,.95),(1.35,1),(1.27,.97),(1.19,.90),(1.15,.81),(1.15,.48),(.82,1),(0,1)]
+                width=h*1.5
+            else:
+                shape=[(0,0),(.20,0),(.52,.50),(.90,.30),(.96,.31),(1,.37),(1,1),(0,1)]
+                width=h
+            outline=[[sign*h*x,edge*h*y] for x,y in shape]
+            add(side+'-'+end+'-lock',end,width,h,(sign*l/2,0),(sign*width/2,edge*h/2),'y',-sign*turn,[.69,.90],outline=outline,
+                fold_offset=[-sign*thickness*(.65 if end=='front' else 1.35),0,0])
+    lid=add('lid','back',l,w,(0,h),(0,w/2),'x',turn,[.06,.27],'lid')
+    if window:
+        lid['holes']=[_rounded_rectangle(-l*.405,w*.14,l*.405,w*.90,min(l,w)*.075)]
+        lid['window_film']=True
+    wing_depth=h if window else h*.72
+    for side,sign in [('left',-1),('right',1)]:
+        points=[(0,-.5),(.84,-.35),(.96,-.31),(1,-.26),(1,.26),(.96,.31),(.84,.35),(0,.5)]
+        add('lid-wing-'+side,'lid',wing_depth,w,(sign*l/2,w/2),(sign*wing_depth/2,0),'y',-sign*turn,[.16,.36],outline=[[sign*wing_depth*x,w*y] for x,y in points],fold_offset=[-sign*thickness*3.6,0,0])
+    tuck_h=h if window else h*.34
+    # Full-depth tapered cake closure; a shallower rounded lip on the brownie box.
+    if window:
+        cap=[[-l/2,0],[l/2,0],[l*.40,tuck_h*.81],[l*.38,tuck_h*.90],[l*.34,tuck_h*.97],[l*.29,tuck_h],[-l*.29,tuck_h],[-l*.34,tuck_h*.97],[-l*.38,tuck_h*.90],[-l*.40,tuck_h*.81]]
+    else:
+        cap=[[-l/2,0],[l/2,0],[l*.49,tuck_h*.64],[l*.48,tuck_h*.84],[l*.45,tuck_h*.97],[l*.42,tuck_h],[-l*.42,tuck_h],[-l*.45,tuck_h*.97],[-l*.48,tuck_h*.84],[-l*.49,tuck_h*.64]]
+    tuck=add('tuck','lid',l,tuck_h,(0,w),(0,tuck_h/2),'x',turn,[0,.12],face='front' if window else None,outline=cap,fold_offset=[0,thickness*1.5,0])
+    if window:tuck['uv_rotation']=180
+    slot_w=min(l*.13,h*.3)
+    if window:tuck['slits']=[[[ -slot_w/2,tuck_h*.25],[-slot_w/2,tuck_h*.12]],[[-slot_w/2,tuck_h*.12],[slot_w/2,tuck_h*.12]],[[slot_w/2,tuck_h*.12],[slot_w/2,tuck_h*.25]]]
+    else:tuck['slits']=[[[-slot_w/2,tuck_h*.5],[slot_w/2,tuck_h*.5]]]
+    _linework(panels)
+    return dict(schema_version='1.2',template_id=kind,units='mm',dimensions=d,panels=panels,upright=False,thickness_mm=thickness,production_ready=False,
+                reference_kind='user-supplied screenshot',reference_dimensions_in={'L':8.5,'W':8.5,'H':4} if window else {'L':10,'W':6,'H':3},
+                material_label='350 gsm white paperboard' if window else '250 gsm kraft paperboard',
+                detail_dimensions_estimated=True,line_colors={'cut':'#2523bc','crease':'#ef4144'},
+                notice='Reconstructed from the supplied screenshot. Overall dimensions are supplied; tab profiles, slots, window size and folding clearances are estimated. Validate against the original vector dieline and a physical sample.')
 
 
 def manifest(kind,d):
+    if kind in ('board-window-cake','board-self-locking-tuck'):return _reference_box(kind,d)
     l,w,h=(d[k] for k in ('L','W','H'))
     panels=[]
     def panel(id,parent,width,height,hinge,center,axis,angle,phase,face=None,shape='rect'):
@@ -139,7 +237,7 @@ def pose(model,progress):
     poses=[]
     for p in model['panels']:
         a,b=p['phase'];t=max(0,min(1,(progress-a)/(b-a)))
-        poses.append(dict(id=p['id'],axis=p['axis'],angle=p['closed_angle']*(1-smooth(t))))
+        poses.append(dict(id=p['id'],axis=p['axis'],angle=p['closed_angle']*(1-smooth(t)),position=[v+p.get('fold_offset',[0,0,0])[i]*(1-progress) for i,v in enumerate(p['hinge'])]))
     return dict(progress=progress,panels=poses)
 
 def recommend_product(text,dimensions=None):

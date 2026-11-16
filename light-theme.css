@@ -1,0 +1,322 @@
+/* EcoPak's white storefront and studio. Load after the existing product styles. */
+:root,
+:root[data-theme] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surf: #ffffff;
+  --ink: #202820;
+  --mute: #697168;
+  --line: #e2e6de;
+  --acc: #315e43;
+  --soft: #f5f6f2;
+  --on: #ffffff;
+  --sage: #466b4f;
+  --ecopak-forest: #315e43;
+  --ecopak-fresh: #e5efdb;
+  --ecopak-dark: #ffffff;
+  --ecopak-paper: #f8f8f3;
+}
+
+html body,
+body:not([data-view="home"]),
+body[data-view="shop"],
+body[data-view="library"] {
+  background: #ffffff;
+  color: var(--ink);
+  color-scheme: light;
+}
+
+body .top,
+body[data-view="shop"] .top {
+  background: #ffffffed;
+  border-color: var(--line);
+  box-shadow: 0 1px 0 #20282003;
+}
+.brand, .brand-sub { color: var(--acc); }
+.top .brand{flex-basis:176px;min-width:176px}
+.ecopak-logo{display:flex;align-items:center;width:176px;height:48px;overflow:visible}
+.ecopak-logo img{display:block;position:static;width:176px;height:auto;max-width:100%;filter:none}
+.top nav button { color: #5e695e; }
+.top nav button:hover { background: #f3f5ef; color: #233d2b; }
+.top nav button.active,
+body[data-view="shop"] .top nav button.active {
+  background: #eaf1e4;
+  color: #274d35;
+}
+.local-tag, .top .apparel-link { color: var(--mute); }
+.btn, .shop-bag-button {
+  background: #ffffff;
+  border-color: #d5ddcf;
+  color: var(--ink);
+}
+.btn:hover, .shop-bag-button:hover { background: #f3f6ef; border-color: #a2b49b; }
+.btn.pri, .btn.pri:hover,
+.shop-button.yellow, .shop-button.yellow:hover {
+  background: #315e43;
+  border-color: #315e43;
+  color: #ffffff;
+}
+.btn.pri:hover, .shop-button.yellow:hover { background: #264e35; }
+.shop-bag-button span { background: #e7efdf; color: #315e43; }
+body button:focus-visible, body input:focus-visible, body select:focus-visible,
+body textarea:focus-visible, body a:focus-visible, body label:focus-within,
+.shop button:focus-visible, .shop a:focus-visible, .shop-dialog :focus-visible {
+  outline-color: #547b47;
+}
+
+/* Storefront, collections and product catalogue. */
+.shop { --shop-muted: #697168; }
+.shop-kicker { color: #56704f; }
+.shop-kicker i { background: #5e8554; }
+.shop-announcement { background: #f3f6ed; color: #596850; border-color: #e1e7d8; }
+.shop-announcement a { color: #315e43; }
+.shop-hero { background: radial-gradient(ellipse at 78% 40%, #f0f3e9, #ffffff 65%); }
+.shop-hero h1 { color: #202820; }
+.shop-hero h1::first-line { color: #315e43; }
+.shop-hero p, .shop-hero-foot { color: #667260; }
+.shop-button { background: #ffffff; border-color: #cbd5c3; color: #31543a; }
+.shop-button:hover { background: #eff4e8; }
+.shop-text-link { color: #31543a; border-color: #9dae92; }
+.shop-hero-stamp { background: #e6efdb; color: #36562d; border-color: #d9e5ca; box-shadow: 0 8px 30px #315e4310; }
+.shop-orbit { border-color: #b3c2a63b; }
+.orbit-two { border-color: #b3c2a629; }
+.ecopak-hero-product { border-color: #dce3d5; background: #ffffff; box-shadow: 0 22px 50px #283d2414; }
+.ecopak-hero-product span { color: #2d452a; }
+.shop-section-heading h2, .shop-how h3, .shop-faq h2,
+.shop-dialog h2, .shop-dialog h3 { color: #202820; }
+.shop-section-heading > p { color: #687168; }
+.shop-collections, .shop-use-row, .shop-filter-extra,
+.shop-faq, .shop-faq details, .shop-how article { border-color: #e0e6d8; }
+.shop-collection-card { background: #ffffff; border-color: #dfe5d8; color: #263321; }
+.shop-collection-card:hover { border-color: #8ba07a; }
+.shop-collection-card small { color: #687168; }
+.shop-collection-card .collection-art,
+.shop-collection-card:nth-child(2n) .collection-art,
+.shop-collection-card:nth-child(3n) .collection-art { background: #f7f8f2; }
+.shop-search { background: #ffffff; border-color: #d4deca; }
+.shop-search > span { color: #687168; }
+.shop .shop-search input { color: #283323 !important; }
+.shop .shop-search input::placeholder { color: #687168; }
+.shop-use-row > span { color: #687168; }
+.shop-use-row button { background: #ffffff; color: #637256; border-color: #d4ddca; }
+.shop-use-row button:hover { background: #f1f6e9; }
+.shop-use-row button[aria-pressed="true"],
+.shop-category-filter[aria-pressed="true"] { background: #e5efda; color: #31522c; border-color: #cadbbe; }
+.shop-sidebar h3 { color: #38472f; }
+.shop-category-filter { color: #67775a; border-color: #dce4d3; }
+.shop-category-filter:hover { background: #f5f8f0; }
+.shop-category-filter span { color: #687168; }
+.shop-filter-extra label, .shop-filter-extra button { color: #6a7b5b; }
+.shop input[type="checkbox"], .shop-custom-toggle input { accent-color: #426f3a; }
+.shop-side-note { background: #f2f6e9; border-color: #d8e3ca; }
+.shop-side-note > span, .shop-side-note a { color: #426c35; }
+.shop-side-note strong { color: #344b2c; }
+.shop-side-note p { color: #687168; }
+.shop-results-bar p { color: #54664a; }
+.shop-results-bar label, .shop-price-note { color: #687168; }
+.shop-results-bar select { background: #ffffff; color: #4c643e; border-color: #d5e0ca; }
+.shop-price-note button { color: #557843; border-color: #97af83; }
+.shop-product-image,
+.shop-product-card:nth-child(4n+2) .shop-product-image,
+.shop-product-card:nth-child(4n+3) .shop-product-image,
+.shop-product-card:nth-child(4n) .shop-product-image { background: #f8f9f4; border-color: #e2e8d9; }
+.shop-card-tag { background: #edf4e3ed; color: #3d6231; border-color: #d8e7ca; }
+.shop-card-tag.is-sold-out { background: #f0f1eced; color: #73766c; border-color: #dfe2d7; }
+.shop-image-arrow { background: #ffffffdd; color: #3e6031; border-color: #c5d4b8; }
+.shop-product-card .shop-card-category { color: #687168; }
+.shop-card-title { color: #2e3e25; }
+.shop-card-title:hover { color: #4c753c; }
+.shop-card-size, .shop-card-price small { color: #687168; }
+.shop-card-price { color: #38692c; }
+.shop-card-config { color: #687168; border-color: #becfb0; }
+.shop-empty { background: #fafbf7; border-color: #cbd9bc; }
+.shop-empty > span { color: #687168; }
+.shop-empty p { color: #687168; }
+.shop-studio-banner { background: #f0f5e7; border-color: #d3e1c4; }
+.shop-studio-banner h2 { color: #334d29; }
+.shop-studio-banner p, .shop-banner-caption { color: #687168; }
+.shop-how article > span, .shop-faq summary::after { color: #687168; }
+.shop-how article p, .shop-faq details p { color: #687168; }
+.shop-footer { border-color: #e2e8d9; }
+.shop-footer .shop-footer-brand { color: #315e43 !important; }
+.shop-footer-brand span, .shop-footer a[href^="tel:"] { color: #687168; }
+.shop-footer > p, .shop-footer > div a, .shop-footer > div button { color: #687168; }
+.shop-footer > small { color: #687168; }
+
+/* Product galleries, order lists and all enquiry dialogs. */
+body:not([data-view="home"]) dialog,
+body .shop-dialog {
+  color-scheme: light;
+  color: #263321;
+  background: #ffffff;
+  border-color: #dce4d2;
+  box-shadow: 0 24px 85px #17240e29;
+}
+body dialog::backdrop, .shop-dialog::backdrop { background: #17240e66; }
+dialog .close, .shop-modal-close { background: #f2f6e9; border-color: #dce5d1; color: #526d3f; }
+.shop-dialog a { color: #4e7c36; }
+.shop-detail-visual { background: #f7f9f1; color: #687168; }
+.shop-detail-visual p, .ecopak-photo-credit { color: #687168; }
+.ecopak-gallery-main, .ecopak-gallery-thumbs button { background: #ffffff; }
+.ecopak-gallery-thumbs button[aria-pressed="true"] { border-color: #577f3f; }
+.shop-detail-description { color: #687168; }
+.shop-detail-specs, .shop-detail-price { border-color: #dde7d0; }
+.shop-detail-specs dt { color: #687168; }
+.shop-detail-specs dd { color: #536f3d; }
+body dialog label, .shop-dialog label { color: #5f7e47; }
+.shop-dialog label > span, .shop-detail-price small,
+.shop-detail-price > span, .shop-detail-price del { color: #687168; }
+body dialog input, body dialog textarea,
+.shop-dialog input:not([type="checkbox"]), .shop-dialog select, .shop-dialog textarea {
+  background: #ffffff;
+  color: #405c2b;
+  border-color: #d4e1c6;
+}
+.shop-detail-price strong, .shop-bag-totals strong, .shop-bag-line > strong,
+.shop-dialog-heading h2 span { color: #497d31; }
+.shop-detail-source, .shop-detail-notice { color: #687168; }
+.shop-detail-source strong { color: #687168; }
+.shop-detail-actions .shop-official-link { border-color: #adc995; }
+.shop-bag-line, .shop-bag-dialog form { border-color: #dfebd2; }
+.shop-bag-line p, .shop-bag-line > strong small,
+.shop-bag-summary-note, .shop-bag-empty p { color: #687168; }
+.shop-line-controls button { color: #687168; border-color: #c2d9ac; background: #ffffff; }
+.shop-line-controls button:hover { background: #edf6e4; }
+.shop-line-controls .shop-remove { color: #687168; border-color: #b7ce9f; }
+.shop-bag-totals span { color: #687168; }
+.shop-brief-note, #shopBriefStatus { color: #687168; }
+.shop-info-dialog p, .shop-info-dialog li { color: #687168; }
+
+/* Shared design studio, library and saved projects. */
+.projectbar, .app, .rail, .panel, .artboard-pane { background: #ffffff; border-color: var(--line); }
+#projectName, .panel h2, .studio-heading h2, .element-controls h2,
+.viewhead h1, .subhead { color: #293629; }
+#saveStatus, .panel p, .studio-heading p, .element-controls p,
+.flat-help, .lbl span, p.n, #msg, .viewhead p { color: #687168; }
+.eyebrow, #models .stock-title, .home-kicker { color: #687168; }
+.rail button { color: #687168; }
+.rail button:hover { background: #f5f8ef; }
+.rail button[aria-selected="true"] { color: #4d7837; background: #edf5e4; }
+.lbl, .dimension-inputs label { color: #687168; }
+body select, body input[type="text"], body input[type="search"],
+body input[type="number"], body textarea, .dimension-inputs input {
+  background: #ffffff;
+  color: #364c29;
+  border-color: #dce6d1;
+}
+body select option, body select optgroup { background: #ffffff; color: #435f32; }
+body input::placeholder, body textarea::placeholder { color: #687168; opacity: 1; }
+body input[type="range"], .opening-control input { accent-color: #64894a; }
+body input[type="color"] { border-color: #bdd0ab; }
+.card { background: #ffffff; border-color: #e0e8d7; color: #3c562e; }
+.card small { color: #687168; }
+.card:hover { background: #f7faf2; }
+.card[aria-pressed="true"] { background: #eef6e5; border-color: #97b77d; box-shadow: inset 3px 0 #719452; }
+.drop { background: #f8fbf3; color: #687168; border-color: #b0ca97; }
+.chip { background: #f4f8ec; color: #687168; border-color: #b0c999; }
+.thumb { border-color: #cedfbd; }
+.sw button { border-color: #bdcfae; }
+.sw button[aria-pressed="true"] { outline-color: #64854e; }
+.seg { background: #f2f7e9; }
+.seg button { color: #687168; }
+.seg button[aria-pressed="true"] { background: #ffffff; color: #587f3f; }
+.face-buttons button, .surface-layer, .layer-row button { background: #ffffff; border-color: #dce8cf; color: #687168; }
+.layer-row.is-selected button:first-child { background: #edf6e3; border-color: #98bb79; }
+.surface-layer:hover, .face-buttons button:hover { background: #f0f7e7; }
+.layer-row select { background: #ffffff; color: #687168; }
+.recommend-button { background: #f3f8ec; border-color: #d5e6c6; color: #54763f; }
+.recommend-button small { color: #687168; }
+.external-catalog, .engine-note { background: #f3f7ed; color: #687168; }
+.flat-wrap { background: repeating-conic-gradient(#eff2e9 0% 25%, #fafbf7 0% 50%) 50%/18px 18px; border-color: #dbe6cf; }
+#flatCanvas { box-shadow: 0 5px 18px #4b623116; }
+#surfaceEmpty { color: #687168; }
+body .stage { background: radial-gradient(ellipse at 50% 35%, #ffffff, #eef1e9 85%) !important; }
+body .stage.drawing { background: #fafbf7 !important; }
+body .stage .hintf, body .stage.drawing .hintf, .fold-note,
+body .stage.drawing .fold-note { color: #687168; }
+.stage .scene-tools, .tb { background: #fffffff2; border-color: #d4e2c7; box-shadow: 0 8px 25px #334a2410; }
+.tb button { color: #687168; }
+.tb button[aria-pressed="true"] { background: #eaf4df; color: #4e7f31; }
+.view-presets button { color: #687168; background: #ffffffed; border-color: #d1e2c0; }
+.view-presets button:hover { background: #f0f7e6; }
+.opening-control, .opening-control button { color: #687168; }
+.opening-control output { color: #687168; }
+.compact-price, .bar { color: #687168; background: #fffffff2; border-color: #d1e2bf; }
+.bar small, .estimate-label, #dieDims { color: #687168; }
+body[data-view="editor"] .ecopak-studio-context { background: #f4f8ed; border-color: #d5e5c7; color: #687168; }
+.ecopak-studio-context span { color: #687168; }
+.ecopak-studio-context button { color: #687168; border-color: #a9c48f; background: #ffffff; }
+.model-reference-note { background: #f5f8ef; border-color: #d6e6c7; color: #687168; }
+
+#library { background: #ffffff; color: #3b542d; }
+.home-intro { border-color: #dce8cf; }
+.home-intro h1 { color: #3b572b; }
+.home-intro p { color: #687168; }
+.home-section-title h2 { color: #687168; }
+.home-section-title > span { color: #687168; }
+.home-section-title button { color: #687168; }
+.home-card, #mockupCards .home-card:nth-child(2n), #netCards .home-card {
+  color: #557d3a;
+  background: #f9fbf5;
+  border-color: #cfe1bf;
+  box-shadow: none;
+}
+.home-card strong { color: #4e7734; }
+.home-card small { color: #687168; }
+.home-arrow { color: #687168; border-color: #b0d095; }
+.home-card:hover, .home-card:focus-visible, #mockupCards .home-card:nth-child(2n):hover {
+  background: #f0f7e6;
+  border-color: #a9cc8c;
+  box-shadow: 0 12px 28px #5c7e3820;
+}
+#netCards .home-art img { background: #ffffff; }
+.viewhead input { background: #ffffff; color: #687168; border-color: #cee0bc; }
+.filter-row { color: #687168; }
+.pill { background: #edf6e3; border-color: #c9e2b4; color: #687168; }
+.template { background: #ffffff; color: #687168; border-color: #d4e7c2; }
+.template:hover { border-color: #a1c981; }
+.template img { background: #f5f9ef; }
+.template small { color: #687168; }
+.template .arrow { color: #687168; }
+.notice { background: #f4f9ed; border-color: #d8eac9; color: #687168; }
+.project-row { background: #ffffff; border-color: #d7e9c8; color: #687168; }
+.project-row small { color: #687168; }
+.empty { background: #fafcf7; color: #687168; border-color: #cbe1b9; }
+body dialog p { color: #687168; }
+.spec-summary { background: #f3f8eb; color: #687168; }
+#toast { background: #315e43; color: #ffffff; border-color: #315e43; box-shadow: 0 8px 28px #315e4324; }
+#hoodieEditor { background: #ffffff; }
+
+/* The fold inspector inserts its own style element; stronger selectors keep it light. */
+body .fold-inspect-button { background: #eef6e4; color: #687168; border-color: #bad69f; }
+body .fold-study-panel > p, body .fold-study-part { color: #687168; }
+body .fold-study-title, body .fold-study-title button { color: #687168; }
+body .fold-study-net { background: #fafbf7; border: 1px solid #e1ead7; }
+body .fold-study-steps button { color: #687168; border-color: #d1e4be; background: #ffffff; }
+body .fold-study-steps button:hover { background: #f5faed; }
+body .fold-study-steps button[aria-pressed="true"] { background: #edf6e1; border-color: #a7ca85; }
+body .fold-study-status strong { color: #687168; }
+body .fold-study-status span { color: #687168; }
+
+@media (max-width: 740px) {
+  .top, body[data-view="shop"] .top { background: #fffffff5; }
+  .shop-category-filter { border-color: #d3e1c6; }
+  .shop-search { background: #ffffff; }
+  .shop-dialog, body:not([data-view="home"]) dialog { box-shadow: 0 16px 55px #253e162b; }
+}
+
+/* Titles use neutral ink; EcoPak green is reserved for actions and emphasis. */
+.shop-section-heading h2, .shop-how h3, .shop-faq h2, .shop-dialog h2, .shop-dialog h3, .shop-card-title, .shop-side-note strong, .home-card strong, .home-intro h1, .home-section-title h2, .viewhead h1, .template strong, .project-row strong, body .fold-study-title, body .fold-study-status strong { color: #253124; }
+
+/* One obvious path to the product's own 3D preview. */
+.shop-card-studio{display:flex;align-items:center;gap:9px;width:100%;min-height:42px;margin-top:13px;padding:10px 13px;border:1px solid #c9d6c8;border-radius:8px;background:#edf3eb;color:#294b35;font:600 11px Manrope;cursor:pointer;text-align:left;transition:background .15s,border-color .15s}
+.shop-card-studio>svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linejoin:round}
+.shop-card-studio>span:last-child{margin-left:auto;font-size:17px}
+.shop-card-studio:hover{background:#dfeadb;border-color:#6f8f71}.shop-card-studio:focus-visible{outline:2px solid #345f41;outline-offset:3px}
+#shopOpenStudio{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;margin:17px 0;background:#edf3eb;color:#294b35;border:1px solid #c9d6c8}
+.nav-product-count{display:inline-grid;place-items:center;min-width:25px;margin-left:5px;padding:2px 5px;border-radius:10px;background:#e4ecde;color:#38533b;font-size:9px}
+.mockup-library-card .mockup-library-cta{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 30px);margin:0 15px 15px;padding-top:11px;border-top:1px solid #e5e9df;font:600 11px Manrope;color:#345b3d}
+@media(max-width:740px){.shop-card-studio{font-size:10px;padding:9px 10px;min-height:42px}.mockup-library-card .mockup-library-cta{width:calc(100% - 24px);margin:0 12px 12px}.nav-product-count{font-size:8px;min-width:20px}}
+.mockup-placement-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mockup-placement-grid input{width:100%}.mockup-settings output{float:right;font-size:10px;color:#6b7b62}.mockup-camera-controls #mockupMoveArtwork{background:#fff;border:1px solid #b9cbb6;color:#31563b;min-height:34px;padding:8px 12px;border-radius:20px;font:600 10px Manrope;cursor:pointer}.mockup-camera-controls #mockupMoveArtwork[aria-pressed=true]{background:#31563b;color:#fff}.mockup-settings #mockupArtworkDetails[open]>summary{margin-bottom:14px}#mockupComponentPicker{padding-bottom:16px;border-bottom:1px solid #e1e6dc}.mockup-stage[data-designable=true] canvas{touch-action:none}
+.mockup-camera-controls #mockupMoveArtwork{pointer-events:auto}
+@media(min-width:741px){.mockup-workspace{height:min(800px,calc(100dvh - 210px));min-height:610px}.mockup-settings{overflow:auto}.mockup-stage{min-height:0}}

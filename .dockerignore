@@ -15,3 +15,9 @@ research-*.json
 screenshots
 node_modules
 .codex
+
+# Imported storefront images are part of the deployable website.
+!assets/
+!assets/**
+ecopak-source-*.json
+ecopak-import-report.json

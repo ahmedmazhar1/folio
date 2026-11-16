@@ -2,21 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Folio API documentation</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>EcoPak API documentation</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{max-width:1000px;margin:48px auto;padding:24px;font:16px/1.7 system-ui;color:#ecf1e9;background:#101710}h1,h2{line-height:1.2;letter-spacing:-.035em}h1{font-size:clamp(32px,6vw,56px)}h2{margin-top:48px}a{color:#e7ff73}code,pre{background:#1d2a20;border-radius:8px}code{padding:3px 6px;font-size:.9em}pre{padding:20px;overflow:auto;line-height:1.55}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;vertical-align:top;padding:14px 10px;border-bottom:1px solid #334036}td:first-child{font-family:monospace;min-width:210px}.table-wrap{overflow:auto}.note{padding:18px 22px;border-left:3px solid #e7ff73;background:#1a251c;border-radius:0 10px 10px 0}footer{border-top:1px solid #334036;margin-top:48px;padding-top:24px;color:#aabbab}
 </style>
 </head>
 <body>
-<a href="/#library">← Folio catalogue</a>
-<h1>Folio API v1</h1>
-<p>Catalogue guides and our own packaging mockup engine. No Pacdora account or key is required.</p>
-<p class="note">This version supports catalogue browsing, guide estimates and visual mockups. It does not accept orders or payments, send quote briefs, or provide paid API authentication and licensing.</p>
+<a href="/#library">← EcoPak catalogue</a>
+<h1>EcoPak API v1</h1>
+<p>EcoPak catalogue prices and our own packaging mockup engine. No Pacdora account or key is required.</p>
+<p class="note">This version supports catalogue browsing, catalogue totals and visual mockups. It does not accept orders or payments, send quote briefs, or provide paid API authentication and licensing.</p>
 <h2>Endpoints</h2>
 <div class="table-wrap"><table><thead><tr><th>Method / path</th><th>Purpose</th></tr></thead><tbody>
 <tr><td>GET /api/v1/health</td><td>Service status. Suitable for a container health check.</td></tr>
 <tr><td>GET /api/v1/products</td><td>Catalogue products, options, pack sizes and price sources; currency is PKR.</td></tr>
-<tr><td>POST /api/v1/catalogue/estimate</td><td>Validate a quote list and calculate authoritative guide totals.</td></tr>
+<tr><td>POST /api/v1/catalogue/estimate</td><td>Validate a quote list and calculate authoritative option totals.</td></tr>
 <tr><td>GET /api/v1/templates</td><td>Prototype template IDs, default dimensions, materials and limits.</td></tr>
 <tr><td>POST /api/v1/configurations/validate</td><td>Validate a packaging configuration and normalize dimensions to millimetres.</td></tr>
 <tr><td>POST /api/v1/estimates</td><td>Custom packaging quote requirement. Returns PKR with <code>unit_price: null</code>, <code>total: null</code> and <code>quote_required: true</code>.</td></tr>
@@ -26,7 +26,7 @@
 <tr><td>POST /api/v1/models/pose</td><td>Panel angles for progress from 0 (closed) to 1 (flat).</td></tr>
 <tr><td>POST /api/v1/recommendations</td><td>Rule-based template recommendation from a product description and optional dimensions. No AI provider is connected.</td></tr>
 </tbody></table></div>
-<h2>Catalogue guide estimate</h2>
+<h2>Catalogue option estimate</h2>
 <p>Get product IDs and options from <code>/api/v1/products</code>, then submit only configuration choices. The server reads its own catalogue and ignores client-supplied prices.</p>
 <pre>{
   "items": [
@@ -38,9 +38,9 @@
     }
   ]
 }</pre>
-<p>The product ID above is an example; use the current catalogue IDs. <code>quantity</code> is the number of selected packs. <code>unitsPerPack</code> and <code>unitPrice</code> come from the server. The calculation is quantity × units per pack × PKR per physical item. One pack of 50 at PKR7 each has a guide total of PKR350.</p>
-<p>A null price or <code>customPrint: true</code> requires a quote and gives that line a null <code>guideTotal</code>. The <code>subtotal</code> includes priced lines only. <code>hasUnpriced</code> and <code>quoteRequired</code> flag a partial total. Source URLs, checked dates and price basis accompany the lines. Quantities must be whole numbers satisfying the selected option’s minimum and step, up to 100,000. A request supports 1–100 lines.</p>
-<p>These are research-based guide prices pending merchant confirmation. Tax, shipping, custom printing, artwork/setup and discounts are not confirmed. An estimate is neither an order nor an invoice.</p>
+<p>The product ID above is an example; use current IDs from the products endpoint. Each option matches an exact EcoPak variant: its listed pack, size and colour. <code>unitPrice</code> is the full price of that listed option, <code>unitsPerPack</code> is 1, and <code>quantity</code> counts how many of those options to request. <code>piecesPerOption</code> is informational when the option explicitly names a piece count. A 50-piece pack priced at PKR350 costs PKR700 for quantity 2; the API does not multiply that pack price by 50.</p>
+<p>A null price or <code>customPrint: true</code> gives a null line total and requires a quote. <code>subtotal</code> includes priced lines only. Unavailable variants are rejected. Source URLs, import dates, variant IDs, quantity labels and price basis accompany each line. Quantities satisfy the option minimum and step, up to 100,000; requests support 1–100 lines.</p>
+<p>Prices and availability were imported from the public EcoPak catalogue on 13 November 2026. This is a snapshot, not a live inventory connection. Tax, shipping, custom print and discounts are confirmed separately. The live EcoPak Shopify shop remains the ordering destination.</p>
 <h2>Packaging configuration</h2>
 <p>Send JSON with <code>Content-Type: application/json</code>. Units are <code>mm</code> or <code>in</code>. Converted limits are L 100–400, W 80–300 and H 30–200 mm. Materials: kraft, sbs, rigid. Finishes: matte, gloss, soft. Supported quantities: 100, 250, 500, 1000, 2500, 5000.</p>
 <pre>{
@@ -59,7 +59,7 @@ const response = await fetch('/api/v1/models', {
   method: 'POST', headers: {'Content-Type':'application/json'},
   body: JSON.stringify({template_id:'mailer', dimensions:{L:220,W:150,H:60}})
 });
-const box = FolioFolding.mount(THREE, await response.json());
+const box = EcoPakFolding.mount(THREE, await response.json());
 scene.add(box.group);
 box.setProgress(0.5); // partially unfolded
 box.dispose(); // release resources when removing the box</pre>
@@ -81,5 +81,5 @@ box.dispose(); // release resources when removing the box</pre>
 curl http://localhost:4173/api/v1/estimates \
   -H 'Content-Type: application/json' \
   -d '{"dimensions":{"L":220,"W":150,"H":60},"quantity":500}'</pre>
-<footer>Folio · Catalogue guides and mockup tools</footer>
+<footer>EcoPak · EcoPak catalogue prices and mockup tools</footer>
 </body></html>
